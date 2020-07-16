@@ -1,0 +1,1746 @@
+#' GAI: Generalised Abundance Index fitting for seasonal invertibrates, with
+#' covariates
+#'
+#' Fitting of the GAI from Dennis et al (2016), with normal mixture, stopover
+#' and spline-based seasonal trend models, as well as poisson, negative binomial
+#' and zero-inflated count models. Covariates can be fitted to mean brood
+#' arrival time, mean brood dispersion and the proportion of the population
+#' which finds itself in each brood. The package slightly extends the
+#' supplementary materials of the paper to provide flexible model-fitting
+#' options and covariate inclusion.
+#' 
+#' @details The package should be used through the fit_GAI function.
+#' Options should be specified to give more detail of the model being fitted.
+#' Bootstraps can be used to produce confidence interval estimates of the 
+#' abundance index and parameter values.
+#' @author C. Fagard-Jenkin, based on work by E. Dennis
+#' @name GAI
+#' @useDynLib GAI
+#' @importFrom Rcpp sourceCpp
+#' @importFrom splines bs
+#' @importFrom mvtnorm rmvnorm
+#' @import magrittr
+#' @import parallel
+#' @import doParallel
+#' @docType package
+NULL
+
+#' Normal mixture sampling
+#'
+#' produces samples from a mixture of n normal distributions.
+#'
+#' @param n The number of samples to generate
+#' @param par A list of parameter values. The first entry contains the
+#' @param skeleton An object which helps to relist the vector of parameters into
+#' the expected format.
+#' means of each component, the second the SDs, and the last
+#' contains the weights. An exponential link is applied to the
+#' SDs, and the \code{\link{probs_link}} function is used on the weights.
+#' \code{\link{probs_link}} is simply a variant of the \code{\link{qlogis}} link
+#'
+#' @return A vector of n generated normal-mixture samples.
+#'
+#' @export
+sim_n_mixture <- function(n, par, skeleton = NULL){
+  # purpose : produces samples from a mixture of n normal distributions.
+  # inputs  : n   - The number of samples to generate
+  #           par - A list of parameter values. The first entry contains the
+  #                 means of each component, the second the SDs, and the last
+  #                 contains the weights. An exponential link is applied to the
+  #                 SDs, and the probs_link() function is used on the weights.
+  #                 The probs_link() is simply a variant of the qlogis() link
+  #                 which ensures the sum of all the probabilities is 1.
+  # output  : A vector of n generated samples
+  
+  # Extract pars and apply links:
+  if (!is.null(skeleton)){
+    par %<>% relist(skeleton)
+    means <- means_link(par$mu)
+    sds <- exp(par$sigma)
+    probs <- probs_link(par$w)
+  }
+  
+  else{
+    means <- means_link(par[[1]])
+    sds <- exp(par[[2]])
+    probs <- probs_link(par[[3]])
+  }
+  
+  # Check dimensions are consistent:
+  if (length(means)!=length(sds) | length(sds)!=length(probs))
+    stop('inconsistent component numbers implied by parameter choices')
+  
+  # Generate the deviates:
+  groups <- sample(length(means), n, replace = T, prob = probs)
+  rnorm(n, means[groups], sds[groups]) %>% return
+}
+
+#' Normal mixture negative Log Likelihood
+#'
+#' Evaluates an n-mixture model negative log-likelihood given the parameters and
+#' the observations
+#'
+#' @param par A list of parameters including mean, sd, and probs.
+#' Alternatively, a vector of parameters, with a skeleton to relist the
+#' parameters (parameter: skeleton).
+#' @param obs A matrix of observed values.
+#' @param skeleton The skeleton to \code{\link{relist}} the parameters
+#' @param returnNLL If TRUE, returns the value of the NLL rather than the
+#' likelihood for each point individually. If FALSE, also returns the output as
+#' an nS*nT matrix.
+#' @param DMs A named list of design matrices for covariate inclusion
+#'
+#' @return A matrix of evaluated densities for the count at each site and
+#' location, or the single real number valued negative log likelihood
+#'
+#' @export
+mixture_nll <- function(par, obs, skeleton, returnNLL = T, DMs = list()){
+  # purpose : Evaluates an n-mixture model negative log-likelihood given the
+  #           parameters and the observations
+  # inputs  : par       - A list of parameters including mean, sd, and probs.
+  #                       Alternatively, a vector of parameters, with a skeleton 
+  #                       to relist the parameters (parameter: skeleton).
+  #           obs       - A matrix of observed values.
+  #           skeleton  - The skeleton to relist() the parameters 
+  #           returnNLL - If TRUE, returns the value of the NLL rather than the
+  #                       likelihood for each point individually. If FALSE, also
+  #                       returns the output as an nS*nT matrix.
+  #           DMs       - A named list of design matrices for covariate
+  #                       inclusion
+  # output  : A number on the real scale, the NLL of all the data points given
+  #           the model parameters, for a normal mixture model
+  
+  # get parameter values with or without covariates, and apply the links:
+  n <- length(obs)
+  nS <- nrow(obs) ; nT <- ncol(obs)
+  parameter_vals <- get_parameter_values(par, DMs, skeleton, n)
+  means <- parameter_vals$means %>% t %>% as.vector
+  sds <- parameter_vals$sds %>% t %>% as.vector
+  probs <- parameter_vals$probs %>% t %>% as.vector
+  
+  B <- length(means)/n # the number of broods
+  # if SDs for each brood are the same, replicate so dimensions match:
+  if (length(sds) <= length(means)) sds <- rep(sds, length(means)/length(sds))
+  
+  # Now vectorise obs to only require one call to dnorm (far faster):
+  obs <- rep(obs, rep(B, n))
+  
+  lfunc <- ifelse(isTRUE(returnNLL),
+                  function(x) -sum(log(x), na.rm = T),
+                  function (x) matrix(x, nrow = nS, ncol = nT))
+  
+  # Now calculate the likelihood:
+  # note on the sequence of events. We: Calculate the likelihood for all data
+  # points and all possible broods for each point %>% Split these probabilities
+  # into a separate group for each data point, containing the likelihood value
+  # for each brood it could belong to %>% add these values together to get the
+  # unconditional likelihood of the point irrespective of brood %>% convert
+  # these values from a list to a numeric vector %>% either -sum(log()) the
+  # values to give the negative log likelihood, or prod the values to give the
+  # likelihood %>% return the NLL or L
+  dnorm(obs, means, sds) %>% `*`(probs) %>% split(rep(1:n, each = B)) %>%
+    lapply(FUN = sum) %>% as.numeric %>% lfunc %>% return
+}
+
+#' Stopover model density evaluation.
+#'
+#' Evaluates the CDF of a mixture of normal distributions, then
+#' returns the probability of being in a given bin.
+#'
+#' @param breaks The points to evaluate. The function return the probability of
+#' being in each bin defined by the breaks.
+#' @param par A vector of parameter values which should be
+#' \code{\link{relist}}ed
+#' @param skeleton The skeleton to \code{\link{relist}} the parameters
+#' @param DMs A list of design matrices to be used when covaraites are included
+#' in the model.
+#' @param nS In the case where DMs is empty because we use no covariates, we
+#' need to know the number of sites to determine the number of points.
+#' @return A matrix of evaluated densities for the count at each site and
+#' location, or the single real number valued negative log likelihood
+#'
+#' @export
+evaluate_stopover <- function(breaks, par, skeleton, DMs = list(), nS){
+  # purpose : Evaluates the CDF of a mixture of normal distributions, then 
+  #           returns the probability of being in a given bin.
+  # inputs  : breaks - The points to evaluate. The function return the
+  #                    probability of being in each bin defined by the breaks.
+  #           par    - A list of parameter values. The first entry contains the
+  #                    means of each component, the second the SDs, and the last
+  #                    contains the weights. An exponential link is applied to
+  #                    the SDs, and the probs_link() function is used on the
+  #                    weights. The probs_link() is simply a variant of the
+  #                    qlogis() link which ensures the sum of all the
+  #                    probabilities is 1.
+  #           DMs    - A list of design matrices to be used when covaraites are
+  #                    included in the model.
+  #           nS     - In the case where DMs is empty because we use no
+  #                    covariates, we need to know the number of sites to
+  #                    determine the number of points.
+  # output  : A vector of length breaks - 1 with the probability an individual
+  #           enters population between the lower and upper limit of the 
+  #           interval specified by the break points
+  # Note    : The stopover model is incompatible with time-varying covariates
+  #           for the means, SDs and weights of the arrival times, and so the 
+  #           DMs should be checked for this before being passed ot this
+  #           function. It is not checkled in this function since this would
+  #           lead to unnecessary computation time during parameter estimation
+  #           with optim.
+  
+  # get parameter values with or without covariates, and apply the links:
+  n <- length(breaks)
+  nT <- length(breaks) - 1
+  parameter_vals <- get_parameter_values(par, DMs, skeleton, nS*nT)
+  means <- parameter_vals$means
+  sds <- parameter_vals$sds
+  probs <- parameter_vals$probs
+  phi <- par %>% relist(skeleton) %>% `$`(phi) %>% plogis
+  B <- ncol(means)
+  
+  # if SDs for each brood are the same, replicate so dimensions match:
+  if (ncol(sds) == 1) sds %<>% rep(B) %>% matrix(ncol = B)
+  
+  output <- matrix(NA, nrow = nS, ncol = nT)
+  components <- rep(1:B, each = n)
+  points <- rep(breaks, B)
+  
+  for (i in 1:nS){
+    # since we know the parameter values are the same for all time points for a 
+    # given site, we simply loop through the sites and get the corresponding
+    # row of "a_func":
+    means_i <- means[i,] %>% `[`(components)
+    sds_i <- sds[i, ] %>% `[`(components)
+    probs_i <- probs[i, ]
+    
+    # Get CDF at each breakpoint for each component %>% break up the results
+    # into a list where each entry is the calculation for all components for a
+    # given data point %>% remove the unecessary points %>% multiply by the
+    # probability of being in each component and add these probabilities together
+    # %>% use C++ code to perform the for loop which multiplies by the retention
+    # probabilities:
+    output[i,] <- pnorm(points, means_i, sds_i) %>% diff %>%
+      split(rep(1:n, B)[-n*B]) %>% `[`(-n) %>%
+      lapply(function (x) sum(x*probs_i)) %>% unlist %>%
+      stopover_for_loop(phi = phi)
+  }
+  
+  return(output)
+}
+
+#' Spline model density evaluation.
+#'
+#' Calculates the seasonal flight curve using splines
+#'
+#' @param par The vector of estimated spline coefficients (and also potentially
+#' the distributional parameters for ZIP and NB likelihoods)
+#' @param skeleton The skeleton to \code{\link{relist}} the parameters
+#' @param spline_specs The list containing the 'degree' of the splines and 
+#' also df (their degrees of freedom)
+#' @param nT The number of sampling occasions per site
+#' @param nS The number of sampling locations during the survey
+#' @return A vector of values of length nT, giving the relative density
+#' of expected counts at each occasion
+#' @export
+evaluate_splines <- function(par, skeleton, spline_specs, nT, nS){
+  # purpose : Calculates the seasonal flight curve using splines
+  # inputs  : par          - The vector of estimated spline coefficients (and 
+  #                          also potentially the distributional parameters for
+  #                          ZIP and NB likelihoods)
+  #           skeleton     - The skeleton which allows us to relist the vector
+  #                          of parameters correctly
+  #           spline_specs - The list containing the 'degree' of the splines and
+  #                          also df (their degrees of freedom)
+  #           nT           - The number of sampling occasions per site
+  #           nS           - The number of sites in the study
+  # outputs : A vector of values of length nT, giving the relative density
+  #           of expected counts at each occasion
+  
+  # extract spline settings:
+  degree <- spline_specs$degree
+  df <- spline_specs$df
+  
+  # extract parameters
+  par %<>% relist(skeleton) %>% `$`(spline_par)
+  
+  # calculate a_func:
+  bsbasis <- bs(1:nT, df = df, degree = degree, intercept = T)
+  a_func <- (bsbasis%*%par) %>% exp %>% sum_to_one %>% return
+  return(a_func)
+}
+
+#' Generate random parameter values for non-spline models
+#'
+#' For ease of simulation studies or testing, generates some parameters for 
+#' non-covariate including normal mixture and stopover models
+#'
+#' @param nT The number of sampling occasions in the experiment
+#' @param skeleton The skeleton to \code{\link{relist}} the parameters
+#' @param sd_max The maximum SD for broods
+#' @param l The lower limit for the distributional parameter (before the link
+#' function is applied)
+#' @param u The upper limit for the distributional parameter (before the link
+#' function is applied)
+#' @return A vector of parameters for the model, such that it can be relisted
+#' using skeleton
+#' @export
+generate_mixture_pars <- function(nT, skeleton, sd_max = 1, l = -5, u = 5){
+  # purpose : Produces random parameter values for a mixture model as a means of
+  #           introducing variation when testing and debugging
+  # inputs  : nT       - The number of sampling occasions in the experiment
+  #           skeleton - The skeleton for the model, which helps to indicate
+  #                      the number of broods and SDs which are needed.
+  #           sd_max   - The maximum SD for broods.
+  #           l        - The lower limit for the distributional parameter
+  #                      (before the link function is applied)
+  #           u        - The upper limit for the distributional parameter
+  #                      (before the link function is applied).
+  # outputs : A vector of parameters for the model, such that it can be
+  #           relisted using skeleton
+  
+  n_means <- length(skeleton$mu)
+  n_sigmas <- length(skeleton$sigma)
+  copy <- skeleton
+  
+  # generate the means, sds and weights for the mixture model:
+  copy$mu <- runif(n_means, 0, nT) %>% sort %>% means_backtransform
+  copy$sigma <- runif(n_sigmas, 0, sd_max) %>% log
+  copy$w <- rbeta(n_means - 1, 1, (n_means - 1):1) %>% qlogis
+  
+  # generate a distributional parameter if it's required:
+  if (!is.null(skeleton$dist.par)) copy$dist.par <- runif(1, l, u)
+  
+  # generate a phi for the stopover if required:
+  if (!is.null(skeleton$phi)) copy$phi <- runif(1) %>% qlogis
+  
+  return(copy)
+}
+
+#' Testing if dependencies are correctly loaded
+#'
+#' As a simple check to verify that the GAI package has succesfully been able
+#' to load its dependencies.
+#'
+#' @return NULL
+#' @export
+test_dependencies <- function(){
+  1 %>% print
+  bs(1:10)
+  sourceCpp(code = "")
+}
+ 
+#' Generate random parameter values for spline models
+#'
+#' For ease of simulation studies or testing, generates some parameters for 
+#' non-covariate including spline models
+#'
+#' @param skeleton The skeleton to \code{\link{relist}} the parameters
+#' @param sigma The standard deviation of the normal distribution the parameters
+#' @param l The lower limit for the dist.par parameter on the link scale
+#' @param u The upper limit for the dist.par parameter on the link scale
+#' are generated from
+#' @return A vector of parameters for the model, such that it can be relisted
+#' using skeleton
+#' @export
+generate_spline_pars <- function(skeleton, sigma = 2, l = -5, u = 5){
+  # purpose : Creates a random list of parameter values for a spline model,
+  #           including a distributional parameter if the model is ZIP or NB
+  # inputs   : skeleton - A skeleton created by produce_skeleton()
+  #            sigma    - The standard deviation of the normal distribution the
+  #                       parameters are generated from
+  #            l        - The lower limit for the dist.par parameter on the
+  #                       link scale
+  #            u        - The upper limit for the dist.par parameter on the link
+  #                       scale
+  # output  : A list of parameters which when passed to unlist() will be in the
+  #           form fit_GAI() expects for an initial guess for parameter values
+  output <- skeleton
+  
+  # Generate the spline parameters:
+  if (is.null(skeleton$spline_par)) stop("spline skeleton must be provided")
+  else output$spline_par <- rnorm(length(skeleton$spline_par), sd = sigma)
+  
+  # Generate the distributional parameter for NB or ZIP models:
+  if (!is.null(skeleton$dist.par)) output$dist.par <- runif(1, l, u)
+  return(output)
+}
+
+#' Simulate data from the GAI
+#'
+#' Produces a simulated data set for observed counts of individuals at each of
+#' nS sites for nT occasions
+#'
+#' @param par The vector of parameter values to be used
+#' @param nT The integer number of sampling occasions
+#' @param totals The integer site total for each site
+#' @param a_type The character name of the seasonal distribution
+#' @param dist_type The character name of the count distribution
+#' @param options A list of options to specify behaviours of the seasonal
+#' distribution. Inlcludes B, the number of broods. Currently covariates are
+#' not supported.
+#' @param thin The proportion of sampling opportunities which should be missed,
+#' and replaced with an NA.
+#' @param returnDF If TRUE, returns a data.frame with site, occasion, and count
+#' columns, rather than a matrix of counts
+#' @return A matrix of simulated counts for each site (rows) and each occasion
+#' (columns).
+#' @export
+simulate_data <- function(par, nT = 25, totals = rep(500, 50),
+                          a_type = "mixture", dist_type = "P",
+                          options = list(), thin = 0.4, returnDF = F){
+  # purpose : Produces a simulated data set for observed counts of individuals
+  #           at each of nS sites for nT occasions
+  # inputs  : par       - The vector of parameter values to be used
+  #           nT        - The integer number of sampling occasions
+  #           total     - The integer site total for each site
+  #           a_type    - The character name of the seasonal distribution
+  #           dist_type - The character name of the count distribution
+  #           options   - A list of options to specify behaviours of the
+  #                       seasonal distribution
+  #           thin      - The proportion of sampling opportunities which should
+  #                       be missed, and replaced with an NA.
+  #           returnDF  - If TRUE, returns a data.frame with site, occasion, and
+  #                       count columns, rather than a matrix of counts
+  # output   : A matrix of simulated counts for each site (rows) and each
+  #            occasion (columns).
+  
+  # extract distributional parameter if dist_type is not Poisson:
+  skeleton <- produce_skeleton(a_type, dist_type, options)
+  dist_par <- relist(par, skeleton)$dist.par
+  ns <- length(totals)
+  
+  if (is.null(dist_par) & dist_type != "P")
+    stop("missing distributional parameter")
+  
+  # Aid the user in supplying the parameters correctly:
+  if (length(par) != length(unlist(skeleton))){
+    message <- paste(length(par), "parameters supplied when",
+                     length(unlist(skeleton)), "are required.",
+                     "The parameters required have been printed.")
+    
+    print(skeleton)
+    
+    stop(message)
+  }
+  
+  nS <- length(totals)
+  totals_matrix <- matrix(rep(totals, nT), nrow = nS)
+  breaks <- c(-Inf, 1:(nT - 1), Inf)
+  
+  # determine the density of the flight pattern given the chosen parameters:
+  flight_pattern <- switch(a_type,
+                           mixture = mixture_nll(par, matrix(1:nT, nrow = 1),
+                                                 skeleton, F),
+                           stopover = evaluate_stopover(breaks, par, skeleton,
+                                                        nS = nS),
+                           splines = evaluate_splines(par, skeleton, options,
+                                                      nT, nS) %>%
+                             # easier to turn spline output into a matrix 
+                             # instead of doing another call to switch for mu:
+                             matrix(nrow = nS, ncol = nT, byrow = T))
+  
+  # scale the patterns by the site totals to get the expected count for 
+  # each site/occasion combination, and then simulate the observed counts
+  # before putting these back into a matrix for the user:
+  mu <- flight_pattern %>% apply(2, function(x) x*totals) %>% unlist
+  
+  simulations <- switch(dist_type,
+                        P = rpois(n = nS*nT, lambda = mu),
+                        NB = rnbinom(n = nS*nT, size = exp(dist_par), mu = mu),
+                        ZIP = rzip(n = nS*nT, mu, plogis(dist_par)))
+  
+  simulations %<>% matrix(nrow = nS) %>% thin_NA(alpha = thin)
+  
+  if (returnDF){
+    data.frame(site = rep(1:nS, nT), occasion = rep(1:nT, each = nS),
+               count = as.numeric(simulations)) %>% return}
+  
+  else return(simulations)
+}
+
+#' Zero-Inflated Poisson Density Evaluation
+#'
+#' Calculates the density of a zero-inflated poisson model at given data points
+#' for a set of parameter values
+#'
+#' @param obs The observations. Can be a matrix or vector, and may contain NAs
+#' @param lambda The vector of means for each observation. Must have the same 
+#' length as obs
+#' @param psi The probability of being from the poisson distribution as
+#' opposed to being an 'inflated' 0
+#' @param log A boolean, if TRUE the function returns the logs of the
+#' densities instead
+#' @return A vector (or matrix) of the same length (dimension) as obs, with
+#' the density or log density of the zero-inflated poisson evaluated
+#' at each point.
+#' @export
+dzip <- function(obs, lambda, psi, log = T){
+  # purpose : Evaluates the density of a Zero=Infalted POisson distribution
+  # inputs  : obs    - The observations. Can be a matrix or vector, and can
+  #                    contain NAs
+  #           lambda - The vector of means for each observation. Must be of the
+  #                    same length as obs (can also be a matrix)
+  #           psi    - The probability of being from the poisson distribution as
+  #                    opposed to being an 'infalted' 0.
+  #           log    - A boolean, if TRUE the function returns the logs of the
+  #                    densities instead
+  # outputs : A vector (or matrix) of the same length (dimesnion) as obs, with 
+  #           the density or log density of the zero-inflated poisson evaluated
+  #           at each point.
+  
+  # get the poisson likelihood of each point:
+  output <- obs
+  output <- try(dpois(obs, lambda), silent = T)
+  zeros <- obs == 0 & !is.na(obs)
+  others <- obs != 0 & !is.na(obs)
+  
+  output[zeros] <- (1 - psi) + psi*output[zeros]
+  output[others] <- psi*output[others]
+  
+  if (isTRUE(log)) output %<>% log
+  
+  return(output)
+}
+
+#' Zero-Inflated Poisson Random Number Generation
+#'
+#' Simulates deviates from a zero-inflated poisson model given the model's
+#' parameter values.
+#'
+#' @param n The integer number of deviates to generate
+#' @param lambda The vector of means for each observation. Must have the same 
+#' length n, or be of length 1 for constant means
+#' @param psi The probability of being from the poisson distribution as
+#' opposed to being an 'inflated' 0
+#' @return A vector of n points from a zero inflated poisson distribution
+#' @export
+rzip <- function(n, lambda, psi){
+  # purpose : Simulates values from a zero inflated poisson distribution
+  # inputs  : n      - The number of elements to simulate
+  #           lambda - The mean, or vector of means for each point
+  #           psi    - The probability of being from the poisson distribution,
+  #                    as opposed to being an 'inflated zero'.
+  # outputs : A vector of n points from a zero inflated poisson distribution
+  
+  output <- rpois(n,lambda)
+  output[weightedSelection(1:n, rep(1 - psi, n))] <- 0
+  return(output)
+}
+
+nsolve_helper <- function(x, N, f, obs, a_func, dist_par, max_counter = 50){
+  # purpose : Iteratives through uses of the uniroot() function to find the
+  #           roots of the derivative of the log likelihood for the NB and ZIP
+  #           cases.
+  # inputs  : x           - An index for which site we are currently trying
+  #                         to solve the problem for
+  #           N           - The vector of current guesses for site totals
+  #           f           - The function which evaluates the derivative of ll
+  #           obs         - The matrix of observed counts
+  #           a_func      - The matrix of arrival time densities
+  #           dist_par    - The extra distributional parameter for the NB or ZIP
+  #           max_counter - The maximum number of times to try using the 
+  #                         uniroot function
+  # output  : A single real number, the numerically calculated value of N which
+  #           sets the derivative of the ll to 0.
+  
+  # fetch interval:
+  upper <- ifelse(N[x] > 0, N[x]*2, max(N))
+  lower <- ifelse(obs[x,] %>% na.omit %>% `>`(0) %>% any, 0.1, 0)
+  if(class(lower)!="numeric"){print("lower error");print(lower)}
+  
+  # solve 1-D derivative:
+  counter <- 0
+  repeat{
+    # attempt to solve:
+    if (class(upper)!="numeric") print("upper error")
+    output <- try(uniroot(f, interval = c(lower, upper), i = x,
+                          obs = obs, a_func = a_func,
+                          dp = dist_par)$root, silent = T)
+    
+    # increase upper limit if required:
+    if (class(output) == "try-error" & counter < max_counter){
+      counter %<>% `+`(1) ; upper %<>% `*`(2)}
+    
+    else {break}
+  }
+  
+  return(output)
+}
+
+nsolve_u <- function(N, obs, a_func, dist_par, dist_choice){
+  # purpose : Solves for N for the iterative MLE finder of the NB and ZIP
+  #           likelihoods.
+  # inputs  : N        - The vector of guesses for the site totals
+  #           obs      - The matrix of obvservations
+  #           dist_par - The r parameter of the NB, or the Psi for a ZIP
+  #           a_choice - "NB" or "ZIP"
+  # outputs : A vector of the same length as N, with the numerical solutions
+  #           to the derivative of the LL given the MLEs\
+  
+  f_choice <- switch(dist_choice, NB = NB_mle_i, ZIP = ZIP_mle_i)
+  
+  new_n <- sapply(1:nrow(obs), nsolve_helper, f = f_choice, obs = obs, N = N, 
+                  a_func = a_func, dist_par = dist_par)
+  #cat('output N has length:', length(new_n))
+  return(new_n)
+}
+
+NB_mle_i <- function(N, i, obs, a_func, dp){
+  # purpose : Evaluates equation 7 of Dennis et al (2014), the partial deriv
+  #           of the NB log likelihood with respect to the superpopulations at 
+  #           each site
+  # inputs  : N      - The vector of estimated site superpopulations
+  #           i      - The occasion at which we solve for N
+  #           obs    - The matrix of observed counts
+  #           a_func - The estimated matrix of seasonal flight curve densities
+  #           r      - The estimated number of events till failure for the NB
+  # outputs : A vector of the same length as N with the numerically solved new
+  #           estimates for N (at each site)
+  # N %<>% `[`(i)
+  
+  # link function for r:
+  dp %<>% exp
+  
+  # calculate and return the formula:
+  LHS <- obs[i,]/N
+  NUM <- (dp + obs[i,])*a_func[i,]
+  DEN <- dp + N*a_func[i,]
+  (LHS - NUM/DEN) %>% sum(na.rm = T) %>% return
+}
+
+ZIP_mle_i <- function(N, i, obs, a_func, dp){
+  # purpose : Evaluates equation 7 of Dennis et al (2014), the partial deriv
+  #           of the NB log likelihood with respect to the superpopulations at 
+  #           each site
+  # inputs  : N      - The vector of estimated site superpopulations
+  #           obs    - The matrix of observed counts
+  #           a_func - The estimated matrix of seasonal flight curve densities
+  #           r      - The estimated number of events till failure for the NB
+  # outputs : A vector of the same length as N with the numerically solved new
+  #           estimates for N (at each site)
+  # N %<>% `[`(i)
+  
+  # link function for phi:
+  dp %<>% plogis
+  
+  # indicator for if observation is definitely not an 'inflated zero':
+  delta <- (obs > 0) %>% `*`(1) %>% as.matrix
+  
+  # calculate the formula:
+  exp_term <- exp(-N*a_func[i,])
+  numer <- -dp*a_func[i,]*(1 - delta[i,])*exp_term
+  denom <- 1 - dp + dp*exp_term
+  
+  result <- numer/denom - delta[i,]*a_func[i,] + (delta[i,]*obs[i,])/N
+  result %>% sum(na.rm = T) %>% return
+}
+
+#' Produce a skeleton for GAI parameters
+#' 
+#' Produces a skeleton object which can be used by relist to restructure a 
+#' vector of parameters into a named list of parameters for a GAI model
+#' @param a_choice The character name for the seasonal trend function being
+#' fitted. options include "splines", "stopover", and "mixture"
+#' @param distribution The distribution of the counts, Poisson ("P"), Negative
+#' Binomial ("NB") or Zero-Inflated Poisson ("ZIP")
+#' @param options A list containing different specifications, which vary
+#' depending on the model. For stopover and mixture models this contains B (the
+#' number of broods), shared_sigma (boolean denoting if the SDs are the same for
+#' each component), mu_formula (specifying a formula which describes a covariate
+#' dependency for the mean arrival times for each brood), and sd_formula
+#' (similar, for the SD of each brood).
+#' @param DF If covariate relationships are specified, this is the data.frame
+#' which contains these covariate values for each observation.
+#' @return A named list of vectors containing NAs, which specificies the
+#' skeleton used by the nll function to \code{relist} the vector of parameters
+#' given by \code{optim}.
+#' @export
+produce_skeleton <- function(a_choice = "mixture", distribution = "P",
+                             options = list(), DF = NULL){
+  # purpose : Takes a variety of options for model specifications and determines
+  #           the skeleton structure which is required for the model parameters.
+  # inputs  : a_choice     - The character name for the seasonal trend function
+  #                          being fitted. options include "splines",
+  #                          "stopover", and "mixture".
+  #           distribution - The distribution of the counts, Poisson ("P"),
+  #                          Negative Binomial ("NB") or Zero-Inflated Poisson
+  #                          ("ZIP")
+  #           options      - A list containing different specifications,
+  #                          which vary depending on the model. For stopover and
+  #                          mixture models this contains B (the number of
+  #                          broods), shared_sigma (boolean denoting if the SDs
+  #                          are the same for each component), mu_formula
+  #                          (specifying a formula which describes a covariate
+  #                          dependency for the mean arrival times for each 
+  #                          brood), and sd_formula (similar, for the SD of each
+  #                          brood).
+  #           DF           - If covariate relationships are specified, this is 
+  #                          the data.frame which contains them.
+  # output  : A named list of vectors containing NAs, which specificies the
+  #           skeleton used by the nll function to relist() the vector of
+  #           parameters given by optim().
+  
+  # input checks:
+  if (! a_choice %in% c("splines", "stopover", "mixture"))
+    stop("Invalid a_choice. Select 'splines', 'stopover' or 'mixture'.")
+  
+  if (! distribution %in% c("P", "ZIP", "NB"))
+    stop("Invalid distribution choice. Select 'P', 'ZIP' or 'NB'.")
+  
+  skeleton <- list()
+  
+  if (a_choice == "splines"){
+    # determine the degrees of freedom of the splines (default of 15):
+    df <- ifelse(is.null(options$df), 15, options$df)
+    skeleton$spline_par <- rep(NA, df)
+  }
+  
+  else if (a_choice %in% c("mixture", "stopover")){
+    # determine number of broods, defaults to 1:
+    B <- ifelse(is.null(options$B), 1, options$B)
+    
+    # determine the number of sigmas, defaults to 1:
+    sigma_num <- ifelse(test = is.null(options$shared_sigma),
+                        yes = 1,
+                        no = B*!options$shared_sigma) %>% c(1) %>% max
+    
+    # now make the skeleton:
+    skeleton$mu <- rep(NA, B)
+    skeleton$sigma <- rep(NA, sigma_num)
+    skeleton$w <- rep(NA, B - 1)
+    
+    # determine the number of parameters required for the means' covariates:
+    if (!is.null(options$mu_formula) & !is.null(DF)){
+      mu_formulas <- options$mu_formula
+      
+      # If the same formula is being specified for all means:
+      if (class(mu_formulas) == "formula"){
+        mu_DM <- design_matrix(DF, covar_formula = options$mu_formula)
+        skeleton$mu.cov <- rep(NA, ncol(mu_DM) - 1)
+      }#if class(mu_formulas) == "formula"
+      
+      else if (class(mu_formulas) == "list"){
+        # Go through the formulas one by one and create the DMs:
+        for (i in 1:length(mu_formulas)){
+          current_formula <- mu_formulas[[i]]
+          if (is.null(current_formula)) next
+          mu_DM <- design_matrix(DF, covar_formula = current_formula)
+          skeleton[paste("mu", i, ".cov", sep = '')] <- rep(NA, ncol(mu_DM) - 1)
+        }#for
+      }#if class(mu_formulas) == list
+    }#if options$mu_formula
+    
+    # determine the number of parameters required for the SDs' covariates:
+    if (!is.null(options$sigma_formula) & !is.null(DF)){
+      SD_DM <- design_matrix(DF, covar_formula = options$sigma_formula)
+      skeleton$sigma.cov <- rep(NA, ncol(SD_DM) - 1)
+    }
+    
+    # determine the number of parameters required for the Ws' covariates:
+    if (!is.null(options$w_formula) & !is.null(DF)){
+      W_DM <- design_matrix(DF, covar_formula = options$w_formula)
+      skeleton$w.cov <- rep(NA, ncol(W_DM) - 1)
+    }
+    
+    # for the stopover model, add the retention prob:
+    if (a_choice == "stopover") skeleton$phi <- NA 
+  }
+  
+  # If the model is ZIP or NB, we need an extra distributional parameter:
+  if (distribution != "P") skeleton$dist.par <- NA
+  
+  return(skeleton)
+}
+
+#' Profile (concentrated) likelihood evaluation for GAI
+#' 
+#' A function which evaluations the profile negative log likelihood of our
+#' observed count data, given the user model specifications of a GAI model.
+#' @param par A vector of estimated parameters for the model
+#' @param obs A matrix of observations. Rows for sites and columns for
+#' occasions.
+#' @param skeleton The skeleton which tells this function how to \code{relist}
+#' the estimated parameters.
+#' @param a_choice The character name of the method used to estimate the
+#' seasonal trend. Either "mixture", "stopover" or "splines".
+#' @param dist_choice The distribution for the observed counts, can be "P"
+#' (poisson), "NB" (negative binomial), "ZIP" (zero inflated poisson)
+#' @param spline_specs A list containing the df (degrees of freedom) and the
+#' 'degree' for the splines.
+#' @param N optionally, instead of using the profile likelihood approach to
+#' estimate N (the superpopulation at each site), it can be supplied as a vector
+#' or integer.
+#' @param returnN if TRUE, returns the vector estimate of N and the matrix
+#' a_func instead of the LL
+#' @param DMs A list of design matrices if covariates have been included
+#' @export
+profile_ll <- function(par, obs, skeleton, a_choice = "mixture", 
+                       dist_choice = "P",
+                       spline_specs = list(df = 10, degree = 3),
+                       N = NULL, returnN = F, DMs = list()){
+  # purpose : Evaluates the likelihood of a poisson model, given a choice of
+  #           seasonal trend function.
+  # inputs  : par          - A vector of estimated parameters for the model
+  #           obs          - A matrix of observations. Rows for sites and
+  #                          columns for occasions.
+  #           a_choice     - The character name of the method used to estimate
+  #                          the seasonal trend. Either "mixture", "stopover" or 
+  #                          "splines".
+  #           dist_choice  - The distribution for the observed counts, can be
+  #                          "P" (poisson), "NB" (negative binomial),
+  #                          "ZIP" (zero inflated poisson)
+  #           skeleton     - The skeleton which tells this function how to
+  #                          relist() the estimated parameters.
+  #           nS           - The number of sites in the study.
+  #           spline_specs - A list containing the df (degrees of freedom) and
+  #                          the degrees for the splines.
+  #           N            - optionally, instead of using the profile likelihood
+  #                          approach to estimate N (the superpopulation at each
+  #                          site), it can be supplied as a vector or integer.
+  #           returnN      - if TRUE, returns the vector estimate of N and the
+  #                          matrix a_func instead of the LL
+  #           DMs          - A list of design matrices if covariates have been
+  #                          included
+  # output  : A real number, the neg log-likelihood of all the data given the 
+  #           model specification and parameters
+  
+  nS <- nrow(obs) ; nT <- ncol(obs)
+  breaks <- c(-Inf, 1:(nT - 1), Inf)
+  if (dist_choice %in% c("NB", "ZIP")) dist_p <- relist(par, skeleton)$dist.par
+  
+  # Get the seasonal flight pattern:
+  a_func <- switch(a_choice,
+                   splines = evaluate_splines(par,skeleton,spline_specs,nT,nS),
+                   stopover = evaluate_stopover(breaks,par,skeleton,DMs,nS),
+                   mixture = mixture_nll(par, matrix(1:nT,nrow = nS,ncol = nT,
+                                                     byrow = T),skeleton,F,DMs))
+  
+  y_dot <- apply(obs, 1, sum, na.rm = T)
+  
+  # The splines function returns a vector, since no covariates are allowed,
+  # so we convert the output to a matrix, to match "obs":
+  if (a_choice == "splines") a_func %<>% matrix(nrow = nS, ncol = nT, byrow = T)
+  a_func[is.na(obs)] <- NA
+  
+  # Get N from the specified argument or with a profile likelihood approach:
+  if (is.null(N)) N <- y_dot/apply(a_func, 1, sum, na.rm = T)
+  else if (length(N) == 1) N %<>% rep(nS)
+  lambda <- a_func*rep(N, nT)
+  
+  # Evaluate the negative log likelihood:
+  lik <- switch(dist_choice,
+                P = dpois(obs, lambda, log = T),
+                NB = dnbinom(obs, mu = lambda, size = exp(dist_p), log = T),
+                ZIP = dzip(obs, lambda = lambda, psi = plogis(dist_p), log = T))
+  
+  # Return the negative log lik for all points:
+  if (returnN) return(list(N = N, a_func = a_func))
+  else lik %>% sum(na.rm = T) %>% `*`(-1) %>% return
+}
+
+check_GAI_inputs <- function(start, obs, a_choice, dist_choice, options,
+                             tol, maxiter){
+  # purpose : Performs sanity checks on the fit_GAI function inputs, to avoid
+  #           cluttering the aforementioned function with if statements
+  # inputs  : see fit_GAI
+  # outputs : NULL, will cause an error if any checks fail
+  if (a_choice == "splines" & (is.null(options$df) | is.null(options$degree)))
+    stop("degree and df must be specified in options for a spline fit")
+  
+  if (! a_choice %in% c("mixture", "stopover", "splines"))
+    stop("a_choice must be 'mixture', 'stopover', or 'splines'")
+  
+  if (! dist_choice %in% c("P", "NB", "ZIP"))
+    stop("dist_choice must be 'Z', 'NB' or 'ZIP'")
+  
+  if (class(maxiter) != "numeric" | maxiter <= 0)
+    stop("maxiter must be a positive integer")
+  
+  if (class(options) != "list") stop("options must be a list")
+  if (class(tol) != "numeric" | tol <= 0) stop("tol must be a positive number")
+  if (class(obs) != "data.frame")
+    stop("observations must be supplied as a data.frame")
+  if (is.null(obs$site) | is.null(obs$occasion) | is.null(obs$count))
+    stop("DF must contain columns 'site', 'occasion' and 'count'.")
+}
+
+#' GAI model fitting
+#' 
+#' Fits the GAI model to a set of data, with a choice of normal, stopover or
+#' spline fits for the seasonal arrival times, as well as poisson, zero-inflated
+#' poisson, or negative binomially distribted count observations.
+#' @param start The vector of start guesses for the parameters.
+#' @param DF The data.frame of observations. Should contain columns 'site', 
+#' 'occasion' and 'count'. occasion and count should be integers, and missing 
+#' entries in the count column are allowed to take the value NA. Any covariate
+#' which is referred to in a formula specified in the options argument should
+#' be present as a column in DF.
+#' @param a_choice "mixture", "stopover" or "splines".
+#' @param dist_choice "P" (poisson), "NB" (negative binomial) or "ZIP"
+#' (zero-inflated poisson).
+#' @param options A list containing different specifications, which vary
+#' depending on the model. For stopover and mixture models this contains B (the
+#' number of broods), shared_sigma (boolean denoting if the SDs are the same for
+#' each component), mu_formula (specifying a formula which describes a covariate
+#' dependency for the mean arrival times for each brood), and sd_formula
+#' (similar, for the SD of each brood).
+#' @param tol The tolerance for the NB and ZIP iterative solvers. The solver
+#' stops when the difference between the negative log likelihood from one
+#' iteration to the next falls beneath this threshold.
+#' @param maxiter The maximum number of iterations to perform when iterating for
+#' the NB or ZIP likelihoods
+#' @param verbose If TRUE, the function will print various updates while it
+#' iterates for NB and for ZIP models.
+#' @param hessian if TRUE, refits the model one last time with hessian = TRUE in
+#' optim, usually so that this can be used to conduct a bootstrap
+#' @param bootstrap Always NULL for the user.. Internally, bootstraps use
+#' this argument to pass in sanitised precaulcations to speed up the refitting
+#' process of non-parametric bootstraps
+#' @return a fitted optim object
+#' @export
+fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
+                    options = list(), tol = 1e-3, maxiter = 1e3,
+                    verbose = F, hessian = F, bootstrap = NULL){
+  # purpose : Fits a GAI with either spline, mixture or stopover seasonal flight
+  #           curves and either P, NB or ZIP distributed counts of individuals
+  # inputs  : start       - The vector of start guesses for the parameters.
+  #           a_choice    - "mixture", "stopover" or "splines".
+  #           dist_choice - "P" (poisson), "NB" (negative binomial) or "ZIP"
+  #                         (zero-inflated poisson).
+  #           options     - Specifies some options for the model.
+  #                         See produce_skeleton().
+  #           tol         - The tolerance for the NB and ZIP iterative solvers.
+  #                         The solver stops when the difference between the 
+  #                         negative log likelihood from one iteration to the 
+  #                         next falls beneath this threshold.
+  #           maxiter     - The maximum number of iterations to perform when 
+  #                         iterative for the NB or ZIP likelihoods.
+  #           verbose     - If TRUE, the function will print various updates
+  #                         while it iterates for NB and for ZIP models.
+  #           hessian     - if TRUE, refits the model one last time with
+  #                         hessian = TRUE in optim, usually so that this can
+  #                         be used to conduct a bootstrap.
+  #           skeleton    - Used by the bootstrap function to pass in 
+  #                         arguments to avoid unecessary calculations
+  #           bootstrap   - If is not null, contains a set of pre-calculated
+  #                         and sanitised objects.
+  #           checkInpts  - If TRUE, will sanity check the input arguments
+  bootFLAG <- !is.null(bootstrap)
+  
+  if (!bootFLAG){
+    # We take a few shortcuts during a bootstrap to save on useless computation.
+    check_GAI_inputs(start, DF, a_choice, dist_choice, options, tol, maxiter)
+    
+    extracted_counts <- extract_counts(DF)
+    obs <- extracted_counts$matrix
+    DF <- extracted_counts$DF
+
+    # Produce a skeleton so the ll knows how to deal with the optim par vector:
+    skeleton <- produce_skeleton(a_choice = a_choice,
+                                 distribution = dist_choice,
+                                 options = options, DF = DF)
+  
+    # Check the user's inputs match the expected number of parameters:
+    if (length(start) != (skeleton %>% unlist %>% length)){
+      paste("Incorrect number of parameters supplied.",
+            "Please submit something similar to:") %>% print
+      skeleton %>% unlist %>% print
+      stop("Starting parameter value dimension mismatch")
+    }
+  
+    # So that the output vector is more readable for the user:
+    names(start) <- names(unlist(skeleton))
+  
+    spline_specs <- switch(a_choice, list(),
+                           # Should be broken because df not DF?:
+                           splines = with(options, list(degree = degree, 
+                                                        df = df)))
+  
+    DMs <- switch(a_choice, splines = NULL, produce_DMs(options, DF, a_choice))
+  }#if
+  
+  else{
+    # Just steal the precalculated values that are (mostly) constant for each
+    # bootstrap iteration (other than the observation matrix).
+    spline_specs <- bootstrap$spline_specs
+    DMs <- bootstrap$DMs
+    skeleton <- bootstrap$skeleton
+    obs <- bootstrap$obs
+  }
+  
+  # Get the first fit with optim:
+  fit <- optim(profile_ll, par = start, obs = obs, skeleton = skeleton,
+               a_choice = a_choice, dist_choice = dist_choice,
+               spline_specs = spline_specs, DMs = DMs)
+  
+  if (dist_choice != "P") { # For non-P models, we solve iteratively
+    # Get the initial profile likelihood estimate of N:
+    N_A <- profile_ll(fit$par, obs = obs, skeleton = skeleton,
+                      a_choice = a_choice, dist_choice = dist_choice,
+                      spline_specs = spline_specs, returnN = T, DMs = DMs)
+    
+    N <- N_A$N
+    if (length(N) == 1) N %<>% rep(nS)
+    
+    # The iterative process:
+    final_fit <- iterate_GAI(N, fit, obs, skeleton, a_choice, dist_choice,
+                             spline_specs, tol, maxiter, DMs, verbose, hessian)
+    
+    # Add the GAI, seasonal component and estimated density:
+    N_A <- profile_ll(final_fit$par, obs = obs, skeleton = skeleton,
+                      a_choice = a_choice, dist_choice = dist_choice,
+                      spline_specs = spline_specs, returnN = T, DMs = DMs)
+    
+    final_fit$A <- N_A$a_func
+    final_fit$N <- N_A$N
+  }
+  
+  if (bootFLAG) return(list(A = N_A$a_func, N = N, mle = final_fit$par))
+  
+  else{
+    site_names <- DF$site %>% unique %>% names
+    names(final_fit$N) <- site_names
+    
+    # Add the skeleton, options, tol, distribution choices, maxiter and 
+    # data.frame for a clean bootstrap implementation:
+    final_fit$spline_specs <- spline_specs
+    final_fit$dist_choice <- dist_choice
+    final_fit$a_choice <- a_choice
+    final_fit$skeleton <- skeleton
+    class(final_fit$skeleton) <- c(class(final_fit$skeleton), "GAIskel")
+    final_fit$maxiter <- maxiter
+    final_fit$options <- options
+    final_fit$DMs <- DMs
+    final_fit$obs <- obs
+    final_fit$tol <- tol
+    final_fit$DF <- DF
+    
+    # Make the output an S3 class, to allow for AIC and plotting general
+    # methods to be implemented for user ease of use:
+    class(final_fit) <- "GAI"
+    return(final_fit)
+  }#else
+}#fit_gai
+
+iterate_GAI <- function(N, fit, obs, skeleton, a_choice, dist_choice,
+                        spline_specs, tol, maxiter, DMs, verbose, hessian){
+  # purpose : Performs the iterative process for the NB and ZIP models, given
+  #           an initial fit
+  # inputs  : see fit_gai
+  # outputs : an optim output for the final fit
+  
+  val <- fit$value
+  prev_val <- val + 2*tol
+  iternum <- 1
+  
+  while (prev_val - val > tol & iternum < maxiter){
+    
+    if (verbose) cat("negative log likelihood for iteration", iternum, "is",
+                     fit$value, "\n")
+    
+    # update prev_val and iternum:
+    prev_val <- fit$value
+    iternum <- iternum + 1
+    
+    # update distributional parameter and a_func:
+    N_A <- profile_ll(fit$par, obs = obs, skeleton = skeleton,
+                      a_choice = a_choice, dist_choice = dist_choice,
+                      spline_specs = spline_specs, returnN = T, DMs = DMs)
+    
+    a_func <- N_A$a_func
+    dist_par <- relist(fit$par, skeleton)$dist.par
+    
+    # update the site total estimates with a numerical solver:
+    N <- nsolve_u(N, obs, a_func, dist_par, dist_choice)
+    
+    # refit the model using this version of N
+    t.fit <- optim(fit$par, profile_ll, obs = obs, skeleton = skeleton,
+                   a_choice = a_choice, dist_choice = dist_choice,
+                   spline_specs = spline_specs, N = N, DMs = DMs)
+    
+    if (t.fit$value > prev_val) break
+    else fit <- t.fit
+    
+    # update value:
+    val <- fit$value
+  }
+  
+  if (verbose) cat("final negative log likelihood value is", fit$value, '\n')
+  
+  if (hessian){
+    if (verbose) cat("performing final iteration to find hessian\n")
+    fit <- optim(fit$par, profile_ll, obs = obs, skeleton = skeleton,
+                 a_choice = a_choice, dist_choice = dist_choice,
+                 spline_specs = spline_specs, N = N, DMs = DMs,
+                 hessian = hessian)
+  }
+  
+  return(fit)
+}
+
+#' Introduce NAs into matrices
+#' 
+#' Thin a matrix of count data by replacing each of its values by an NA
+#' observation with a fixed probability
+#' @param matvec The input matric or vector to be thinned
+#' @param alpha The probability of a point being replaced
+#' @return The object matvec, but with some elements replaced by NA values
+#' @export
+thin_NA <- function(matvec, alpha = 0.3){
+  # purpose : Takes an input vector or matrix and replaces each value with NA
+  #           with probability alpha
+  # inputs  : matvec - The input matrix or vector to be thinned
+  #           alpha  - The expected proportion of points to be removed
+  # output  : matvec, with each point replaced by NA with probability NA
+  
+  to_replace <- rbinom(length(matvec), 1, alpha) %>% as.logical %>% which
+  matvec[to_replace] <- NA
+  return(matvec)
+}
+
+#' Backtransform for means
+#' 
+#' Performs the backtransform of the link function which is used to specify the
+#' means of the broods
+#' @param vec The vector of (positive) means which should be backtransformed to 
+#' the real line
+#' @return A vector of the same length as vec, of backtransformed values
+#' @export
+means_backtransform <- function(vec){
+  # purpose : Takes a vector of means and produces the vector of values which
+  #           leads to those means when passed to means_link()
+  # inputs  : vec - The vector of means to be backtransformed
+  # outputs : A vector fo the same length as vec, of backtransformed values
+  vec[-1] <- diff(vec)
+  vec %>% log %>% return
+}
+
+#' Extract a count matrix from a data.frame
+#' 
+#' Loops through unique values of 'occasion' and 'site' in a data.frame in order
+#' to extract the matrix of observed counts required for GAI model fitting
+#' @param data_frame A data.frame with columns "site", "occasion" and "counts"
+#' @param checls if TRUE, checks that all counts are specified
+#' @param returnDF if TRUE returns instead a list with the matrix of counts as
+#' well as a reordered version of the data.frame so that the rows match the
+#' matrix output.
+#' @return A matrix of counts, with rows as sites and columns as occasions.
+#' @export
+extract_counts <- function(data_frame, checks = T, returnDF = T){
+  # purpose : Extracts from a data_frame the matrix of observed counts
+  # inputs  : data_frame - A data.frame with columns "site", "occasion" and
+  #                        "counts".
+  #           checks     - if TRUE, checks that all counts are specified
+  #           returnDF   - if TRUE returns instead a list with the matrix of 
+  #                        counts as well as a reordered version of the
+  #                        data.frame so that the rows match the matrix output.
+  # outputs : A matrix of counts, with rows as sites and columns as occasions.
+  if (checks){
+    if (is.null(data_frame$site)) stop("'site' column must be present")
+    if (is.null(data_frame$occasion)) stop("'occasion' column must be present")
+    if (is.null(data_frame$count)) stop("'count' column must be present")
+    
+    if (! class(data_frame$count) %in% c("numeric", "integer"))
+      stop('count must be numeric')
+    if (! class(data_frame$occasion) %in% c("numeric", "integer", "factor"))
+      stop('occasion must be numeric or factor')
+    if (! class(data_frame$site) %in% c("numeric", "integer", "factor"))
+      stop('site must be numeric or factor')
+  }
+  
+  # extract number of sites:
+  unique_sites <- unique(data_frame$site)
+  nS <- length(unique_sites)
+  
+  # extract number of occasions:
+  unique_occasions <- unique(data_frame$occasion)
+  nT <- length(unique_occasions)
+  
+  # To avoid the assumption that sites and occasions start at the number 1, or
+  # that the counts column in the data_frame are well - ordered in terms of 
+  # sites and occasions, we loop through to extract the correct count for each
+  # site occasion pair:
+  output <- matrix(NA, nrow = nS, ncol = nT)
+  outputDF <- data.frame()
+  over <- under <- t_counter <- s_counter <- 0
+  
+  for (t in unique_occasions){
+    # increment occasion index, and reset site index:
+    t_counter <- t_counter + 1
+    s_counter <- 0
+    
+    for (s in unique_sites){
+      # increment site index:
+      s_counter <- s_counter + 1
+      
+      # extract the relevant portion of the data.frame:
+      count_st_sub <- subset(data_frame, data_frame$site == s &
+                               data_frame$occasion == t)
+      # extract the count:
+      count_st <- count_st_sub$count
+      
+      # accept the count if it's the only one specified:
+      if (length(count_st) == 1){output[s_counter, t_counter] <- count_st}
+      
+      # if multiple counts specified for the same point, take the first:
+      else if (length(count_st) > 1){
+        output[s_counter, t_counter] <- count_st[1]
+        over %<>% `+`(1)
+      }
+      
+      # if no count is specified, mark it as missing:
+      else {output[s_counter, t_counter] <- NA; under %<>% `+`(1)}
+      
+      outputDF %<>% rbind(count_st_sub[1, ])
+    }
+  }
+  
+  # let the user know we dealt with unexpected cases:
+  if (over > 0 | under > 0){
+    warning(paste(over, "counts were specified multiples times.", under,
+                  "were not specified."))
+    
+    if (under > 0 & returnDF)
+      stop("DF with covariates could not be returned, due to missing entries")
+  }
+  
+  if (returnDF) return(list(matrix = output, DF = outputDF))
+  else return(output)
+}
+
+design_matrix <- function(DF, covar_formula){
+  # purpose : Produces a design matrix, given a data.frame and the specified
+  #           relationship given by a formula object
+  # inputs  : DF            - The data.frame containing the covariates
+  #           covar_formula - The formula specifying the covariate relationship
+  # output  : A design matrix for the specified parameter value given the
+  #           covariate values.
+  
+  # We must remove the LHS of the formula, if it exists (it usually does):
+  RHS <- try(covar_formula[[3]], silent = T)
+  
+  if (class(RHS) != 'try-error'){ # This means there is a LHS as well as a RHS
+    covar_formula[[2]] <- NULL    # This deletes the LHS and fixes the indices
+  }
+  
+  # Make the design matrix for the whole data set:
+  DM <- model.matrix(object = covar_formula, DF)
+  return(DM)
+}
+
+lin_predictor <-  function(parameters, DM, check = T){
+  # purpose : Produces the linear predictor for a parameter, given the covariate
+  #           values it depends on, as described by a design matrix
+  # inputs  : parameters - The parameters for the covariate relationship
+  #           DM         - The design matrix
+  # output  : A vector of values for the parameter, given the design matrix
+  #           and the hyper-parameter values
+  
+  # Multiply DM by the column matrix of covariate parameters to obtain 
+  # the linear predictor for the theta parameter of interest:
+  parameters <- matrix(parameters, ncol = 1)
+  
+  # Exception handle the matrix multiplication to ensure the correct number 
+  # of parameters has been supplied for the relationship specified by the 
+  # passed formula object:
+  LP <-  try({DM %*% parameters}, silent = T)
+  
+  if (check & class(LP) == 'try-error'){
+      stop('Incorrect number of parameters supplied to lin_predictor')
+  }
+  
+  return(LP)
+}
+
+is_time_varying <- function(DM, DF){
+  # purpose : determines if a design matrix contains time-varying covariates
+  # inputs  : DM - The design matrix for the chosen covariate.
+  #           DF - The data.frame with the data and covaraite values.
+  # output  : TRUE or FALSE
+  output <- FALSE
+  
+  for (s in unique(DF$site)){
+    site_rows <- DF$site == s # find out which rows refer to this site
+    
+    # find out if any covariate column has time-varying values:
+    s_check <- DM[site_rows, ] %>% apply(2, unique) %>% lapply(length) %>%
+      as.numeric %>% `>`(1) %>% any
+    
+    if (s_check){output <- TRUE; break}
+  }
+  
+  return(output)
+}
+
+produce_DMs <- function(options, DF, a_type){
+  # purpose : Produces a list of design matrices given a data.frame of
+  #           covariate values, and a list of options which contains formulas
+  #           for specifying covariate relationships
+  # inputs  : options - The options list passed to fit_gai() which contains
+  #                     specifications for the model being fitted, including
+  #                     the specified covariate relationships.
+  #           DF      - The data.frame containing the data and the covariate
+  #                     values.
+  #           a_type  - The type of curve to be fitted (determines what types
+  #                     of covariates are allowed, and how we make the design
+  #                     matrices).
+  # output  : A named list of design matrices.
+  if (a_type == "splines"){
+    warning('covariates cannot be used with splines')
+    options <- NULL # ensures function doesn't try to produce DMs
+  }
+  
+  output <- list()
+  nS <- DF$site %>% unique %>% length
+  
+  # make the brood mean arrival time design matrix:
+  if (!is.null(options$mu_formula))
+    output$mu <- design_matrix(DF, options$mu_formula)
+  
+  # make the brood arrival time sd design matrix:
+  if (!is.null(options$sigma_formula))
+    output$sigma <- design_matrix(DF, options$sigma_formula)
+  
+  # make the brood arrival time weight design matrix:
+  if (!is.null(options$w_formula))
+    output$w <- design_matrix(DF, options$w_formula)
+  
+  # if the model is a stopover model, we must check covariates are not time-
+  # varying:
+  if (a_type == "stopover"){
+    time_varying <- lapply(output, is_time_varying, DF = DF) %>% as.logical
+    
+    if (any(time_varying)){
+      message_1 <- "Time varying covariates are not allowed in the parameters"
+      message_2 <- "for the mean, sd, or weight of the arrival times for each"
+      message_3 <- "brood. Any formulas containing time varying covariates have"
+      message_4 <- "been ignored."
+      
+      paste(message_1, message_2, message_3, message_4) %>% warning
+    }
+    
+    if (length(time_varying > 0)){ # when no covariates are used, this is 0.
+      for (i in 1:length(time_varying)){
+        if (time_varying[i]) output[[i]] <- NULL
+      }
+    }
+    
+    # In the case of a stopover model, we know covariates are not time_varying, 
+    # so we only need to return the parameter values for each site, and not
+    # each individual observation:
+    helper <- function(dm, ns) dm[1:ns,]
+    output %<>% lapply(helper, ns = nS)
+    class(output) <- "stopover"
+  }# if (a_type == "stopover)
+  
+  class(output) <- c(class(output), "GAIdesignmatrix")
+  return(output)
+}
+
+get_parameter_values_all_rows <- function(base, par, DMs, B){
+  # purpose : Helper which extracts the correct information from parameter 
+  #           and design matrix object to calculate the correct final 
+  #           parameter value for a given site
+  # inputs  : base - The string indicating which type of parameter should be 
+  #                  dealth with (mu, w, sigma, etc)
+  #           par  - The relisted object containing the optim estimates for 
+  #                  all parameters
+  #           DMs  - The list of all design matrices for objects with covariates
+  #           B    - The number of parameters for which the base needs to be
+  #                  used. Typically the same as the number of broods, i.e.
+  #                  one mean arrival time per brood,
+  #
+  # Note: If none of the broods have a covariate formula, this will cause an 
+  #       edge case which isn't dealt with elegantly, so it's important that
+  #       the rest of the package code performs as expected (i.e doesn't call
+  #       this function when there are no covariates)
+  
+  # Seems convoluted, but in essence, because the user can specify either a
+  # set of mu covariate parameters (using the mean brood arrival time as an
+  # example), or a set of mu1, mu2, etc. covariates individually, we need to
+  # check if the brood index in question has no mu covariate formula, a general
+  # one (which is the same for all broods) or an individual one. If it's
+  # individually specified, then there'll by a mu1.cov design matrix (for
+  # brood 1, or a mu2.cov design matrix for brood 2, etc.). To simplify:
+  # we're just checking to see if the DMs object has an entry with a name that
+  # implies we're dealing with an individually specified covariate:
+  is_general <- DMs[base] %>% `[[`(1) %>% is.null %>% `!`
+  is_indiv_spec <- function(i) DMs[paste(base, i, sep = "")] %>%
+    `[[`(1) %>% is.null
+  # The most horrific piece of code in the whole package. This pulls the right
+  # parameters from the design matrix depending on if the formula is general
+  # to all broods, or specific to the individual brood, and then packages them
+  # in a list to be able to use do.call to apply the linear predictor within
+  # the same line of code:
+  lp_func <- function(brood, is_specific){
+
+    is_covariate <- is_specific | is_general
+    if (!is_covariate) par[base] %>% unlist %>% `[`(brood) %>% return
+    
+    else{
+      # This section deals with the column as a covariate that's either using
+      # the same formula as the other broods, or its own one:
+      index <- paste(base, ifelse(is_specific, ".cov", ""), sep = "")
+      par[base] %>% unlist %>% `[`(brood) %>% c(unlist(par[index])) %>%
+        list %>% c(DMs[base]) %>% unname %>% do.call(what = lin_predictor) %>%
+        return
+    }#else
+  }#lp_func
+  
+  # cbind can handle combining columns with 1 entry to columns with multiple.
+  # However, it only likes doing so when all of these columns are specified in 
+  # the same call to cbind, or it spits out a dimension error. So we need to
+  # store all our columns as entries in a list, and call cbind on this entire
+  # object at the end:
+  output <- lp_func(1, is_indiv_spec(1)) %>% list
+  for (i in 2:B) output[[i]] <- lp_func(i, is_indiv_spec(i))
+  output %>% do.call(what = cbind) %>% return()
+}#get_parameter_values_all_rows
+
+contains_covariates <- function(base, par, DMs){
+  # purpose : Scans the (unlisted) parameters and design matrices objects to 
+  #           determine if a type of parameter (means, standard deviations, 
+  #           weights, etc.) in the GAI model contains either a general or
+  #           brood specific covariate specification
+  #
+  # Note : See get_parameter_values_all_rows for more detailed commenting on how
+  #        this sequence of pipes is being used
+  
+  parnum <- par[base] %>% `[[`(1) %>% length
+  is_general <- DMs[base] %>% `[[`(1) %>% is.null %>% `!`
+  is_indiv_spec <- sapply(1:parnum,
+                          function(i) DMs[paste(base, i, sep = "")] %>%
+                            `[[`(1) %>% is.null) %>% any
+  
+  return(is_general | is_indiv_spec)
+}
+
+get_parameter_values <- function(par, DMs, skeleton, n){
+  # purpose : Returns a list of parameter values given design matrices and
+  #           a vector of hyper-parameters given by optim()
+  # inputs  : par      - The vector of parameters and hyper-parameters given by
+  #                      optim()
+  #           DMs      - The list of design matrices
+  #           skeleton - The skeleton with which we can relist the optim()
+  #                      parameter values
+  #           n        - The number of data points = nS*nT
+  # outputs : A list with the mean, sd, and w parameters with links applied.
+  #           Each component is a matrix. The rows are a site occasion pair, and
+  #           the columns refer to the value of the parameter for each brood.
+  #           The parameters are given for the first time step first, and then 
+  #           the second, etc. i.e, a suurvey with 3 sites, 5 occasions and 2 
+  #           broods would have a 'means' output which is a 15x2 matrix.
+  
+  # no-covariate case:
+  par %<>% relist(skeleton)
+  
+  # define some helper functions to avoid slower for loops:
+  w_helper <- function(i) lin_predictor(c(par$w[i], par$w.cov), DMs$w)
+  sd_helper <- function(i) lin_predictor(c(par$sigma[i], par$sigma.cov),
+                                         DMs$sigma)
+  # FOR THE MEANS:
+  # Get value for each site pair, then apply the link:
+  if (contains_covariates("mu", par, DMs)) means <-
+    get_parameter_values_all_rows("mu", par,DMs, length(par$mu)) %>%
+    apply(1, means_link) %>% t
+  
+  # otherwise just use parameters with no covariates:
+  else means <- means_link(par$mu) %>%
+      matrix(nrow = n, ncol = length(par$mu), byrow = T)
+  
+  # FOR THE SDS:
+  if (!is.null(DMs$sigma)) sds <- sapply(1:length(par$sigma), sd_helper) %>% exp
+  else sds <- exp(par$sigma) %>% matrix(nrow = n, ncol = length(par$sigma),
+                                        byrow = T)
+  
+  # FOR THE WEIGHTS:
+  if (!is.null(DMs$w)) probs <- sapply(1:length(par$w), w_helper) %>%
+    apply(1, probs_link) %>% t
+  
+  else probs <- probs_link(par$w) %>%
+    matrix(nrow = n, ncol = length(par$w) + 1, byrow = T)
+  
+  
+  return(list(means = means, sds = sds, probs = probs))
+}
+
+bootstrap_combine <- function(sapply_output){
+  # purpose : Combines the result of two or more sets of parallel bootstrap
+  #           calculations for the butterfly model
+  # note : The function expects each output to be a list containing three items,
+  #        the output is a list of three items with rbinded outputs from all
+  #        the arguments.
+
+  argg <- sapply_output
+  n <- length(argg)
+  output <- argg[[1]]
+
+  for (i in 2:n){
+    for (j in 1:length(argg[[1]])){
+      output[[j]] = rbind(output[[j]], argg[[i]][[j]])
+    }
+  }
+
+  return(output)
+}
+
+bootstrap_non_parallel <- function(R, MLE, sigma, obs, skeleton, a_choice,
+                                   dist_choice, DMs, spline_specs, parameters,
+                                   N_vals, mean_vals){
+  # purpose : Computes the for loop for a parameter resampling bootstrap on a
+  #           single core
+  # inputs  : R        -
+  #           MLE      - The maximum likelihood estimate for the parameters
+  #           sigma    - The variance-covariance matrix for the MLE normal distn
+  #           obs      - The observations
+  #           skeleton -
+  #           
+  # output  : list of parameters, N_vals and mean vals for the GAI resulting
+  #           from the bootstrap
+  for (i in 1:R){
+    # Resample the parameters and get new estimates of the GAI:
+    iteration_par <- rmvnorm(1, MLE, sigma)
+    iteration_N_A <- profile_ll(iteration_par, obs = obs, skeleton = skeleton,
+                                a_choice = a_choice,
+                                dist_choice = dist_choice, DMs = DMs,
+                                spline_specs = spline_specs, returnN = T)
+    
+    iteration_N <- iteration_N_A$N
+    iteration_mean <- mean(iteration_N)
+    
+    # Store the iteration results:
+    parameters[i,] <- iteration_par
+    N_vals[i,] <- iteration_N
+    mean_vals[i,] <- iteration_mean
+  }
+  
+  return(list(parameters = parameters, N_vals = N_vals, mean_vals = mean_vals))
+}
+
+reformDMs <- function(DMs, n_sites, sites){
+  # purpose : Reorders the rows of the fitted design matrix, so that they are
+  #           in the correct order for the resampled sites selected for a 
+  #           bootstrap
+  # inputs  : DMs      - The design matrices object 
+  #           n_sites  - The number of sites in the study
+  #           sites    - The resampled site indices
+  # output  : The DMs object, but reordered. 
+  
+  n_dms <- length(DMs)
+  
+  # Time-varying covariates aren't allowed, so we can take some shortcuts:
+  if(length(DMs) > 0){
+    n_occasions <- DMs[[1]] %>% dim %>% `[`(1) %>% `/`(n_sites)
+    for (i in 1:n_dms) DMs[[i]] <- DMs[[i]][rep(sites, n_occasions),]
+  }
+  
+  return(DMs)
+}
+
+resample_bootstrap_one_iter <- function(sites, DMs, iteration_object, obs,
+                                        maxiter, tol, a_choice, dist_choice,
+                                        start){
+  # purpose : Performs a single iteration of the resample the data bootstrap, 
+  #           for cleaner parallel implementations with sapply and par Sapply
+  # inputs  :
+  #           sites            -  The number of sites in the study
+  #           DMs              -  A list of design matrices for covariate 
+  #                               inclusion
+  #           iteration-object - An object which stores pre-calculation which
+  #                              limit the work needed by the fit_gai function
+  #                              during reffiting
+  #           obs              - A matrix of observations of counts (or NAs)
+  #           maxiter          - The maximum number of iterations to iterate a 
+  #                              non-Poisson model 
+  #           tol              - The stopping condition for non-Poisson fitting
+  #           a_choice         - The choice of seasonal trend
+  #           dist_choice      - The choice of count data distribution
+  #           start            - The maximum likelihood estimate for the
+  #                              parameters, to be used as the starting guess
+  #                              for optim
+  indices <- sample(1:sites, sites, replace = T)
+  iteration_object$DMs <- reformDMs(DMs, sites, indices)
+  iteration_object$obs <- obs[indices, ]
+  
+  fitted <- fit_GAI(start = start, DF = NULL, a_choice = a_choice,
+                    dist_choice = dist_choice, options = NULL,
+                    verbose = F, hessian = F,  bootstrap = iteration_object,
+                    tol = tol, maxiter = maxiter)
+  
+  return(list(iteration_par = fitted$mle,  iteration_N = fitted$N,
+              iteration_mean = mean(fitted$N)))
+}
+
+resample_bootstrap <- function(cl, R, start, obs, skeleton, a_choice,
+                               dist_choice, DMs, spline_specs, tol, maxiter,
+                               parameters, N_vals, mean_vals){
+  # purpose : Computes the non-parametric bootstrap by refitting the model at
+  #           each iteration.
+  # inputs  : R            - The number of bootstrap iterations to be performed
+  #           start        - The maximum likelihood estimate for the parameters,
+  #                          to be used as the starting guess for optim
+  #           obs          - The observations
+  #           skeleton     - The skeleton object which allows parameter vectors
+  #                          to be relisted correctly
+  #           a_choice     - The choice of seasonal arrival pattern
+  #           dist_choice  - The choice of count distribution for the model
+  #           DMs          - A list of design matrices for covariate inclusion
+  #           options      - A set of user-specified options that indicate 
+  #                          things such as number of broods or spline settings
+  #           tol          - The tolerance for the therative fitting process
+  #           maxiter      - The maximum number of iterations for the fitting
+  #                          process
+  #           parameters   - Object in which to store the bootstrapped 
+  #                          parameter values
+  #           N_vals       - Object in which to store the bootstrapped site
+  #                          totals
+  #           mean_vals    - Object in which to store the bootstrapped mean 
+  #                          estimated site total across sites
+  #           
+  # output  : list of parameters, N_vals and mean vals for the GAI resulting
+  #           from the bootstrap
+  
+  sites <- nrow(obs)
+  
+  iteration_object <- list(obs = NULL, skeleton = skeleton, DMs = DMs,
+                           spline_specs = spline_specs)
+  if (!is.null(cl)){
+    parSapply(cl, rep(sites, R), resample_bootstrap_one_iter, DMs = DMs,
+              iteration_object = iteration_object, obs = obs, maxiter = maxiter,
+             tol = tol, a_choice = a_choice, dist_choice = dist_choice,
+              start = start, simplify = F) %>% bootstrap_combine %>% return
+  }
+  
+  else{
+    sapply(rep(sites, R), resample_bootstrap_one_iter, DMs = DMs,
+           iteration_object = iteration_object, obs = obs, maxiter = maxiter,
+           tol = tol, a_choice = a_choice, dist_choice = dist_choice,
+           start = start, simplify = F) %>% bootstrap_combine %>% return
+    }
+}#resample_bootstrap
+
+#' Bootstrapping for GAI models
+#' 
+#' Produces either a non-parameteric bootstrap by refitting the GAI at each
+#' iteration, or produces a parametric resampling of the MLEs at each iteration
+#' using an estimate of their asymptotic normal distribution.
+#' @param GAI_fit An object produced by using fit_GAI for model fitting
+#' @param R The number of resamples to produce for the bootstrap
+#' @param refit If TRUE, resamples the observations from the sites and occasions
+#' uniformly, and refits the model at each bootsrap iteration. If FALSE, the
+#' bootstrap simply resamples the fitted parameter values from their asymptotic
+#' normal distribution (therefore this option requires a Hessian to have been
+#' produced during the model fitting stage).
+#' @param alpha 1 - alpha gives the coverage the bootstrap confidence intervals
+#' aim to produce.
+#' @param parallel if TRUE, calculates the bootstraps in parallel, using the
+#' maximum number of available cores.
+#' @param cores If not NULL, this specifies the number of cores to use, if the
+#' default of using all available cores is undesirable.
+#' @return A named list with entries "GAI", "N", "A" and "par" giving the 
+#' \code{c(alpha / 2, 1 - alpha / 2)} confidence interval for the GAI, site
+#' superpopulation, seasonal component and estimated parameter values,
+#' respectively.
+#' @export
+bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
+                      cores = NULL){
+  # purpose : Produces bootstrap estimates of the GAI and fitted parameters
+  # inputs  : GAI_fit  - An object produced by using fit_GAI for model fitting
+  #           R        - The number of resamples to produce for the bootstrap
+  #           refit    - If TRUE, resamples the observations from the sites and
+  #                      occasions uniformly, and refits the model at each
+  #                      bootsrap iteration. If FALSE, the bootstrap simply
+  #                      resamples the fitted parameter values from their 
+  #                      asymptotic normal distribution (therefore this option
+  #                      requires a Hessian to have been produced during the
+  #                      model fitting stage).
+  #           alpha    - 1 - alpha gives the coverage the bootstrap confidence
+  #                      intervals aim to produce.
+  #           parallel - if TRUE, calculates the bootstraps in parallel, using
+  #                      the maximum number of available cores.
+  #           cores    - If not NULL, this specifies the number of cores to use, 
+  #                      if the default of using all available cores is 
+  #                      undesirable.
+  # output  : A named list with entries "GAI", "N", "A" and "par" giving the
+  #           c(alpha / 2, 1 - alpha / 2) confidence interval for the GAI, 
+  #           site superpopulation, seasonal component and estimated parameter
+  #           values, respectively.
+  #
+  # note    : The resampling the perameters bootstrap is not performed in
+  #           parallel, since the calculation is so quick that combining results
+  #           from multiple cores is typically slower than running the single
+  #           threaded version.
+  if (class(alpha) != "numeric" | alpha < 0 | alpha > 1) stop("Invalid alpha")
+  if (class(GAI_fit) != "GAI") stop("GAI_fit must be produced by fit_GAI()")
+  if (class(parallel) != "logical") stop("Parallel must be TRUE or FALSE")
+  if (class(refit) != "logical") stop("Refit must be TRUE or FALSE")
+  if (switch (class(cores), NULL = F, integer = cores < 1 | cores %% 1 != 0,
+      numeric = cores < 1 | cores %% 1 != 0, T)) stop("Invalid number of cores")
+  if (! class(R) %in% c("numeric", "integer") | R < 1 | R %% 1 != 0)
+    stop("Invalid bootstrap iteration number")
+  
+  require(mvtnorm)
+  require(parallel)
+  
+  # Register the cluster for parallelising:
+  if (parallel){
+    if (is.null(cores)) cores <- max(1, detectCores() - 1)
+    cl <- makeCluster(cores)
+  }
+  
+  else {cl <- NULL}
+  
+  # Create matrices and arrays to store outputs:
+  MLE <- GAI_fit$par
+  dims <- dim(GAI_fit$A)
+  nS <- dims[1] ; nT <- dims[2]
+  parameters <- matrix(NA, nrow = R, ncol = length(MLE))
+  colnames(parameters) <- names(MLE)
+  N_vals <- matrix(NA, nrow = R, ncol = nS)
+  mean_vals <- matrix(NA, nrow = R, ncol = 1)
+  
+  # Extract required objects:
+  spline_specs <- GAI_fit$spline_specs
+  dist_choice <- GAI_fit$dist_choice
+  sigma <- solve(GAI_fit$hessian)
+  skeleton <- GAI_fit$skeleton
+  a_choice <- GAI_fit$a_choice
+  maxiter <- GAI_fit$maxiter
+  obs <- GAI_fit$obs
+  tol <- GAI_fit$tol
+  DMs <- GAI_fit$DMs
+  
+  if (refit){
+    # Resample data bootstrap:
+    result <- resample_bootstrap(cl, R, MLE, obs, skeleton, a_choice,
+                                 dist_choice, DMs, spline_specs, tol, maxiter,
+                                 parameters, N_vals, mean_vals)
+  }
+  
+  else {
+    # Resample the parameters bootstrap
+    if (GAI_fit$hessian %>% is.null) stop("Hessian required in fitted model")
+    
+    result <- bootstrap_non_parallel(R, MLE, sigma, obs, skeleton, a_choice,
+                                     dist_choice, DMs, spline_specs,
+                                     parameters, N_vals, mean_vals)
+  }
+  
+  parameters <- result[[1]]
+  N_vals <- result[[2]]
+  mean_vals <- result[[3]]
+  
+  # Calculate the confidence intervals using the results:
+  probs <- c(alpha / 2, 1 - alpha / 2)
+  par_CI <- apply(parameters, 2, quantile, probs = probs)
+  N_CI <- apply(N_vals, 2, quantile, probs = probs)
+  index_CI <- apply(mean_vals, 2, quantile, probs = probs)
+  
+  if(parallel) stopCluster(cl)
+  
+  return(list(par = par_CI, sites = N_CI, index = index_CI,
+              par_raw = parameters, N_raw = N_vals))
+}
+
+
+
+
