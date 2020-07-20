@@ -873,7 +873,7 @@ check_GAI_inputs <- function(start, obs, a_choice, dist_choice, options,
     stop("a_choice must be 'mixture', 'stopover', or 'splines'")
   
   if (! dist_choice %in% c("P", "NB", "ZIP"))
-    stop("dist_choice must be 'Z', 'NB' or 'ZIP'")
+    stop("dist_choice must be 'P', 'NB' or 'ZIP'")
   
   if (class(maxiter) != "numeric" | maxiter <= 0)
     stop("maxiter must be a positive integer")
@@ -1004,42 +1004,42 @@ fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
     if (length(N) == 1) N %<>% rep(nS)
     
     # The iterative process:
-    final_fit <- iterate_GAI(N, fit, obs, skeleton, a_choice, dist_choice,
-                             spline_specs, tol, maxiter, DMs, verbose, hessian)
+    fit <- iterate_GAI(N, fit, obs, skeleton, a_choice, dist_choice,
+                       spline_specs, tol, maxiter, DMs, verbose, hessian)
     
     # Add the GAI, seasonal component and estimated density:
-    N_A <- profile_ll(final_fit$par, obs = obs, skeleton = skeleton,
+    N_A <- profile_ll(fit$par, obs = obs, skeleton = skeleton,
                       a_choice = a_choice, dist_choice = dist_choice,
                       spline_specs = spline_specs, returnN = T, DMs = DMs)
     
-    final_fit$A <- N_A$a_func
-    final_fit$N <- N_A$N
+    fit$A <- N_A$a_func
+    fit$N <- N_A$N
   }
   
-  if (bootFLAG) return(list(A = N_A$a_func, N = N, mle = final_fit$par))
+  if (bootFLAG) return(list(A = N_A$a_func, N = N, mle = fit$par))
   
   else{
     site_names <- DF$site %>% unique %>% names
-    names(final_fit$N) <- site_names
+    names(fit$N) <- site_names
     
     # Add the skeleton, options, tol, distribution choices, maxiter and 
     # data.frame for a clean bootstrap implementation:
-    final_fit$spline_specs <- spline_specs
-    final_fit$dist_choice <- dist_choice
-    final_fit$a_choice <- a_choice
-    final_fit$skeleton <- skeleton
-    class(final_fit$skeleton) <- c(class(final_fit$skeleton), "GAIskel")
-    final_fit$maxiter <- maxiter
-    final_fit$options <- options
-    final_fit$DMs <- DMs
-    final_fit$obs <- obs
-    final_fit$tol <- tol
-    final_fit$DF <- DF
+    fit$spline_specs <- spline_specs
+    fit$dist_choice <- dist_choice
+    fit$a_choice <- a_choice
+    fit$skeleton <- skeleton
+    class(fit$skeleton) <- c(class(fit$skeleton), "GAIskel")
+    fit$maxiter <- maxiter
+    fit$options <- options
+    fit$DMs <- DMs
+    fit$obs <- obs
+    fit$tol <- tol
+    fit$DF <- DF
     
     # Make the output an S3 class, to allow for AIC and plotting general
     # methods to be implemented for user ease of use:
-    class(final_fit) <- "GAI"
-    return(final_fit)
+    class(fit) <- "GAI"
+    return(fit)
   }#else
 }#fit_gai
 
