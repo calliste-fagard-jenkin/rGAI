@@ -634,6 +634,48 @@ ZIP_mle_i <- function(N, i, obs, a_func, dp){
   result %>% sum(na.rm = T) %>% return
 }
 
+get_cov_skeleton_and_DM <- function(base, options, DF, n, skeleton, DMs){
+  # purpose : Produces the correct entries in the skeleton and design matrix
+  #           lists for stopover and mixture models
+  # inputs  : base     - A character name of the type of parameter being dealt
+  #                      with ("mu", "sigma" or "w")
+  #           options  - A list of options given to the fit_GAI function to 
+  #                      specify the model
+  #           DF       - The data frame with which covariate values are stored,
+  #                      for creating design matrices
+  #           n        - The number of formulas to check
+  #           skeleton - The object where skeleton items should be added
+  #           DMs      - The object where design matrix should be added
+  # outputs : A named list containing the updated skeleton and DMs objects
+  # Extract the formulas from the options:
+  formulas <- options[[paste(base, "_formula", sep = "")]]
+  
+  # If the formula contains more than one thing, then it's a general formula 
+  # shared among all of the 'base' type parameters:
+  if (class(formulas) == "formula"){
+    DMs[[base]] <- design_matrix(DF, formulas)
+    skeleton[[paste(base, ".cov", sep = "")]] <- rep(NA, ncol(DMs[[base]]) - 1)
+  }
+  
+  # Otherwise the formula is a list, containing formulas for each parameter
+  # individually:
+  else if (class(formulas) == "list"){
+    # Only going up to n avoids odd behaviour where the formulas list contains
+    # more entries than what we expect.
+    for (i in 1:n){
+      # Extract the formula, and do nothing if no covariate is specified:
+      current_formula <- formulas[[i]]
+      if (is.null(current_formula)) next
+      
+      # Produce the design matrix and update the output objects:
+      DMs[[paste(base, i, sep = "")]] <- design_matrix(DF, current_formula)
+      n_par <- DMs[[paste(base, i, sep = "")]] %>% ncol %>% `-`(1)
+      skeleton[[paste(base, i, ".cov", sep = '')]] <- rep(NA, n_par)
+    }#for
+  }#else if
+  return(list(skeleton = skeleton, DMs = DMs))
+}#get_cov_skeleton_and_DM
+
 #' Produce a skeleton for GAI parameters
 #' 
 #' Produces a skeleton object which can be used by relist to restructure a 
@@ -687,6 +729,7 @@ produce_skeleton <- function(a_choice = "mixture", distribution = "P",
     stop("Invalid distribution choice. Select 'P', 'ZIP' or 'NB'.")
   
   skeleton <- list()
+  DMs <- list()
   
   if (a_choice == "splines"){
     # determine the degrees of freedom of the splines (default of 15):
@@ -708,38 +751,18 @@ produce_skeleton <- function(a_choice = "mixture", distribution = "P",
     skeleton$sigma <- rep(NA, sigma_num)
     skeleton$w <- rep(NA, B - 1)
     
-    # determine the number of parameters required for the means' covariates:
-    if (!is.null(options$mu_formula) & !is.null(DF)){
-      mu_formulas <- options$mu_formula
-      
-      # If the same formula is being specified for all means:
-      if (class(mu_formulas) == "formula"){
-        mu_DM <- design_matrix(DF, covar_formula = options$mu_formula)
-        skeleton$mu.cov <- rep(NA, ncol(mu_DM) - 1)
-      }#if class(mu_formulas) == "formula"
-      
-      else if (class(mu_formulas) == "list"){
-        # Go through the formulas one by one and create the DMs:
-        for (i in 1:length(mu_formulas)){
-          current_formula <- mu_formulas[[i]]
-          if (is.null(current_formula)) next
-          mu_DM <- design_matrix(DF, covar_formula = current_formula)
-          skeleton[paste("mu", i, ".cov", sep = '')] <- rep(NA, ncol(mu_DM) - 1)
-        }#for
-      }#if class(mu_formulas) == list
-    }#if options$mu_formula
+    # Update the design matrices and skeletons for the mean parameters:
+    updates <- get_cov_skeleton_and_DM("mu", options, DF, B, skeleton, DMs)
+    skeleton <- updates$skeleton ; DMs <- updates$DMs
     
-    # determine the number of parameters required for the SDs' covariates:
-    if (!is.null(options$sigma_formula) & !is.null(DF)){
-      SD_DM <- design_matrix(DF, covar_formula = options$sigma_formula)
-      skeleton$sigma.cov <- rep(NA, ncol(SD_DM) - 1)
-    }
+    # Update the design matrices and skeletons for the sigma parameters:
+    updates <- get_cov_skeleton_and_DM("sigma", options, DF,
+                                       sigma_num, skeleton, DMs)
+    skeleton <- updates$skeleton ; DMs <- updates$DMs
     
-    # determine the number of parameters required for the Ws' covariates:
-    if (!is.null(options$w_formula) & !is.null(DF)){
-      W_DM <- design_matrix(DF, covar_formula = options$w_formula)
-      skeleton$w.cov <- rep(NA, ncol(W_DM) - 1)
-    }
+    # Update the design matrices and skeletons for the w parameters:
+    updates <- get_cov_skeleton_and_DM("w", options, DF, B - 1, skeleton, DMs)
+    skeleton <- updates$skeleton ; DMs <- updates$DMs
     
     # for the stopover model, add the retention prob:
     if (a_choice == "stopover") skeleton$phi <- NA 
@@ -748,7 +771,7 @@ produce_skeleton <- function(a_choice = "mixture", distribution = "P",
   # If the model is ZIP or NB, we need an extra distributional parameter:
   if (distribution != "P") skeleton$dist.par <- NA
   
-  return(skeleton)
+  return(list(skeleton = skeleton, DMs = DMs))
 }
 
 #' Profile (concentrated) likelihood evaluation for GAI
@@ -938,6 +961,8 @@ fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
     skeleton <- produce_skeleton(a_choice = a_choice,
                                  distribution = dist_choice,
                                  options = options, DF = DF)
+    
+    DMs <- skeleton$DMs ; skeleton <- skeleton$skeleton
   
     # Check the user's inputs match the expected number of parameters:
     if (length(start) != (skeleton %>% unlist %>% length)){
@@ -951,11 +976,8 @@ fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
     names(start) <- names(unlist(skeleton))
   
     spline_specs <- switch(a_choice, list(),
-                           # Should be broken because df not DF?:
                            splines = with(options, list(degree = degree, 
                                                         df = df)))
-  
-    DMs <- switch(a_choice, splines = NULL, produce_DMs(options, DF, a_choice))
   }#if
   
   else{
@@ -1156,7 +1178,7 @@ extract_counts <- function(data_frame, checks = T, returnDF = T){
   nT <- length(unique_occasions)
   
   # To avoid the assumption that sites and occasions start at the number 1, or
-  # that the counts column in the data_frame are well - ordered in terms of 
+  # that the counts column in the data_frame are well-ordered in terms of 
   # sites and occasions, we loop through to extract the correct count for each
   # site occasion pair:
   output <- matrix(NA, nrow = nS, ncol = nT)
@@ -1336,6 +1358,27 @@ produce_DMs <- function(options, DF, a_type){
   return(output)
 }
 
+
+lp_func <- function(brood, is_indiv, is_general, par, base, DMs){
+  is_covariate <- is_indiv | is_general
+  if (!is_covariate) par[[base]] %>% `[`(brood) %>% return
+  
+  else{
+    # This section deals with the column as a covariate that's either using
+    # the same formula as the other broods, or its own one:
+    extension <- ifelse(is_indiv, brood, "")
+    index <- paste(base, extension, ".cov", sep = "")
+    # The most horrific piece of code in the whole package. This pulls the right
+    # parameters from the design matrix depending on if the formula is general
+    # to all broods, or specific to the individual brood, and then packages them
+    # in a list to be able to use do.call to apply the linear predictor within
+    # the same line of code:
+    par[[base]] %>% `[`(brood) %>% c(par[[index]]) %>%
+      list %>% c(DMs[[paste(base, extension, sep = "")]] %>% list) %>%
+      do.call(what = lin_predictor) %>% return
+  }#else
+}#lp_func
+
 get_parameter_values_all_rows <- function(base, par, DMs, B){
   # purpose : Helper which extracts the correct information from parameter 
   #           and design matrix object to calculate the correct final 
@@ -1363,36 +1406,25 @@ get_parameter_values_all_rows <- function(base, par, DMs, B){
   # brood 1, or a mu2.cov design matrix for brood 2, etc.). To simplify:
   # we're just checking to see if the DMs object has an entry with a name that
   # implies we're dealing with an individually specified covariate:
-  is_general <- DMs[base] %>% `[[`(1) %>% is.null %>% `!`
-  is_indiv_spec <- function(i) DMs[paste(base, i, sep = "")] %>%
-    `[[`(1) %>% is.null
-  # The most horrific piece of code in the whole package. This pulls the right
-  # parameters from the design matrix depending on if the formula is general
-  # to all broods, or specific to the individual brood, and then packages them
-  # in a list to be able to use do.call to apply the linear predictor within
-  # the same line of code:
-  lp_func <- function(brood, is_specific){
-
-    is_covariate <- is_specific | is_general
-    if (!is_covariate) par[base] %>% unlist %>% `[`(brood) %>% return
-    
-    else{
-      # This section deals with the column as a covariate that's either using
-      # the same formula as the other broods, or its own one:
-      index <- paste(base, ifelse(is_specific, ".cov", ""), sep = "")
-      par[base] %>% unlist %>% `[`(brood) %>% c(unlist(par[index])) %>%
-        list %>% c(DMs[base]) %>% unname %>% do.call(what = lin_predictor) %>%
-        return
-    }#else
-  }#lp_func
+  is_general <- DMs[[base]] %>% is.null %>% `!`
+  
+  is_indiv_cov <- function(x){
+    DMs[[paste(base, x, sep = "")]] %>% is.null %>% `!` %>% return()
+  }
   
   # cbind can handle combining columns with 1 entry to columns with multiple.
   # However, it only likes doing so when all of these columns are specified in 
   # the same call to cbind, or it spits out a dimension error. So we need to
   # store all our columns as entries in a list, and call cbind on this entire
-  # object at the end:
-  output <- lp_func(1, is_indiv_spec(1)) %>% list
-  for (i in 2:B) output[[i]] <- lp_func(i, is_indiv_spec(i))
+  # object at the end: brood, is_indiv, is_general, par, base
+  output <- lp_func(1, is_indiv_cov(1), is_general, par, base, DMs) %>% list
+  
+  if (B > 1){
+    for (i in 2:B){
+      output[[i]] <- lp_func(i, is_indiv_cov(i), is_general, par, base, DMs)
+    }
+  }
+  
   output %>% do.call(what = cbind) %>% return()
 }#get_parameter_values_all_rows
 
@@ -1404,12 +1436,11 @@ contains_covariates <- function(base, par, DMs){
   #
   # Note : See get_parameter_values_all_rows for more detailed commenting on how
   #        this sequence of pipes is being used
-  
-  parnum <- par[base] %>% `[[`(1) %>% length
-  is_general <- DMs[base] %>% `[[`(1) %>% is.null %>% `!`
+  parnum <- par[[base]] %>% length
+  is_general <- DMs[[base]] %>% is.null %>% `!`
   is_indiv_spec <- sapply(1:parnum,
-                          function(i) DMs[paste(base, i, sep = "")] %>%
-                            `[[`(1) %>% is.null) %>% any
+                          function(i) DMs[[paste(base, i, sep = "")]] %>%
+                            is.null) %>% sapply(`!`) %>% any
   
   return(is_general | is_indiv_spec)
 }
@@ -1429,36 +1460,32 @@ get_parameter_values <- function(par, DMs, skeleton, n){
   #           The parameters are given for the first time step first, and then 
   #           the second, etc. i.e, a suurvey with 3 sites, 5 occasions and 2 
   #           broods would have a 'means' output which is a 15x2 matrix.
-  
-  # no-covariate case:
   par %<>% relist(skeleton)
   
-  # define some helper functions to avoid slower for loops:
-  w_helper <- function(i) lin_predictor(c(par$w[i], par$w.cov), DMs$w)
-  sd_helper <- function(i) lin_predictor(c(par$sigma[i], par$sigma.cov),
-                                         DMs$sigma)
-  # FOR THE MEANS:
-  # Get value for each site pair, then apply the link:
+  # Use the helper function to get the parameter values for the means, 
+  # SDs, and weights one by one:
   if (contains_covariates("mu", par, DMs)) means <-
-    get_parameter_values_all_rows("mu", par,DMs, length(par$mu)) %>%
+    get_parameter_values_all_rows("mu", par, DMs, length(par$mu)) %>%
     apply(1, means_link) %>% t
   
-  # otherwise just use parameters with no covariates:
+  # Without covariates, do it manually to save computation time:
   else means <- means_link(par$mu) %>%
       matrix(nrow = n, ncol = length(par$mu), byrow = T)
   
-  # FOR THE SDS:
-  if (!is.null(DMs$sigma)) sds <- sapply(1:length(par$sigma), sd_helper) %>% exp
+  # Standard Deviations:
+  if (contains_covariates("sigma", par, DMs)) sds <-
+    get_parameter_values_all_rows("sigma", par, DMs, length(par$sigma)) %>% exp
+  
   else sds <- exp(par$sigma) %>% matrix(nrow = n, ncol = length(par$sigma),
                                         byrow = T)
   
-  # FOR THE WEIGHTS:
-  if (!is.null(DMs$w)) probs <- sapply(1:length(par$w), w_helper) %>%
+  # Weights:
+  if (contains_covariates("w", par, DMs)) probs <-
+    get_parameter_values_all_rows("w", par, DMs, length(par$w)) %>%
     apply(1, probs_link) %>% t
   
   else probs <- probs_link(par$w) %>%
     matrix(nrow = n, ncol = length(par$w) + 1, byrow = T)
-  
   
   return(list(means = means, sds = sds, probs = probs))
 }
