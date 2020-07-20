@@ -990,9 +990,18 @@ fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
   }
   
   # Get the first fit with optim:
+  hessian_ff <- hessian & dist_choice == "P"
   fit <- optim(profile_ll, par = start, obs = obs, skeleton = skeleton,
                a_choice = a_choice, dist_choice = dist_choice,
-               spline_specs = spline_specs, DMs = DMs)
+               spline_specs = spline_specs, DMs = DMs, hessian = hessian_ff)
+  
+  # To ensure a bootstrap call has the estimated site totals:
+  if (bootFLAG & dist_choice == "P"){
+    N_A <- profile_ll(fit$par, obs = obs, skeleton = skeleton,
+                      a_choice = a_choice, dist_choice = dist_choice,
+                      spline_specs = spline_specs, returnN = T, DMs = DMs)
+    N <- N_A$N
+  }
   
   if (dist_choice != "P") { # For non-P models, we solve iteratively
     # Get the initial profile likelihood estimate of N:
@@ -1718,7 +1727,7 @@ bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
   
   # Create matrices and arrays to store outputs:
   MLE <- GAI_fit$par
-  dims <- dim(GAI_fit$A)
+  dims <- dim(GAI_fit$obs)
   nS <- dims[1] ; nT <- dims[2]
   parameters <- matrix(NA, nrow = R, ncol = length(MLE))
   colnames(parameters) <- names(MLE)
