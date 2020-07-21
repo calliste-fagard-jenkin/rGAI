@@ -404,7 +404,7 @@ simulate_data <- function(par, nT = 25, totals = rep(500, 50),
   #            occasion (columns).
   
   # extract distributional parameter if dist_type is not Poisson:
-  skeleton <- produce_skeleton(a_type, dist_type, options)
+  skeleton <- produce_skeleton(a_type, dist_type, options)$skeleton
   dist_par <- relist(par, skeleton)$dist.par
   ns <- length(totals)
   
