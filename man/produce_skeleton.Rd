@@ -29,9 +29,10 @@ dependency for the mean arrival times for each brood), and sd_formula
 which contains these covariate values for each observation.}
 }
 \value{
-A named list of vectors containing NAs, which specificies the
-skeleton used by the nll function to \code{relist} the vector of parameters
-given by \code{optim}.
+A named list containing 'skeleton', the skeleton of parameter values
+used by the model to relist optim guesses, and 'DMs', the list of design
+matrix objects which are required to obtain the correct parameter values 
+in each case where the user has specified a formula
 }
 \description{
 Produces a skeleton object which can be used by relist to restructure a 

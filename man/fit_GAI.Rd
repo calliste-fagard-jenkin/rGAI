@@ -52,8 +52,8 @@ iterates for NB and for ZIP models.}
 optim, usually so that this can be used to conduct a bootstrap}
 
 \item{bootstrap}{Always NULL for the user.. Internally, bootstraps use
-this argument to pass in sanitised precaulcations to speed up the refitting
-process of non-parametric bootstraps}
+this argument to pass in sanitised precalculations to speed up the refitting
+process of 'refit-the-model' bootstraps}
 }
 \value{
 a fitted optim object

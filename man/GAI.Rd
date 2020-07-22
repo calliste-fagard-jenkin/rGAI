@@ -21,5 +21,5 @@ Bootstraps can be used to produce confidence interval estimates of the
 abundance index and parameter values.
 }
 \author{
-C. Fagard-Jenkin, E. Dennis
+C. Fagard-Jenkin, based on work by E. Dennis, et al.
 }

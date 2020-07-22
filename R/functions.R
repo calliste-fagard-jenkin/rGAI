@@ -367,7 +367,9 @@ generate_spline_pars <- function(skeleton, sigma = 2, l = -5, u = 5){
 #' Simulate data from the GAI
 #'
 #' Produces a simulated data set for observed counts of individuals at each of
-#' nS sites for nT occasions
+#' nS sites for nT occasions. Note, this function was implemented before 
+#' covariate inclusion, and has no ability to deal with covariate-including
+#' data simulation.
 #'
 #' @param par The vector of parameter values to be used
 #' @param nT The integer number of sampling occasions
@@ -634,6 +636,23 @@ ZIP_mle_i <- function(N, i, obs, a_func, dp){
   result %>% sum(na.rm = T) %>% return
 }
 
+#' Obtain skeleton and Design Matrix
+#'
+#' Updates the skeleton and design matrix objects for a GAI model for a given 
+#' input parameter type.
+#'
+#' @param base The character name of the type of parameter to be used. Can be
+#' 'mu', 'sigma' or 'w'.
+#' @param loptions A list of options given to the fit_GAI function to 
+#' specify the model
+#' @param DF The data frame with which covariate values are stored, for creating
+#' design matrices
+#' @param n The number of formulas to check (i.e. how many parameters of type
+#' 'base' are we expecting?)
+#' @param skeleton The object where skeleton items should be added
+#' @param DMs The object where design matrix should be added
+#' @return A named list containing the updated skeleton and DMs objects in 
+#' entries 'skeleton' and 'DMs' respectively.
 get_cov_skeleton_and_DM <- function(base, options, DF, n, skeleton, DMs){
   # purpose : Produces the correct entries in the skeleton and design matrix
   #           lists for stopover and mixture models
@@ -692,9 +711,10 @@ get_cov_skeleton_and_DM <- function(base, options, DF, n, skeleton, DMs){
 #' (similar, for the SD of each brood).
 #' @param DF If covariate relationships are specified, this is the data.frame
 #' which contains these covariate values for each observation.
-#' @return A named list of vectors containing NAs, which specificies the
-#' skeleton used by the nll function to \code{relist} the vector of parameters
-#' given by \code{optim}.
+#' @return A named list containing 'skeleton', the skeleton of parameter values
+#' used by the model to relist optim guesses, and 'DMs', the list of design
+#' matrix objects which are required to obtain the correct parameter values 
+#' in each case where the user has specified a formula
 #' @export
 produce_skeleton <- function(a_choice = "mixture", distribution = "P",
                              options = list(), DF = NULL){
@@ -916,8 +936,8 @@ check_GAI_inputs <- function(start, obs, a_choice, dist_choice, options,
 #' @param hessian if TRUE, refits the model one last time with hessian = TRUE in
 #' optim, usually so that this can be used to conduct a bootstrap
 #' @param bootstrap Always NULL for the user.. Internally, bootstraps use
-#' this argument to pass in sanitised precaulcations to speed up the refitting
-#' process of non-parametric bootstraps
+#' this argument to pass in sanitised precalculations to speed up the refitting
+#' process of 'refit-the-model' bootstraps
 #' @return a fitted optim object
 #' @export
 fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",

@@ -42,5 +42,7 @@ A matrix of simulated counts for each site (rows) and each occasion
 }
 \description{
 Produces a simulated data set for observed counts of individuals at each of
-nS sites for nT occasions
+nS sites for nT occasions. Note, this function was implemented before 
+covariate inclusion, and has no ability to deal with covariate-including
+data simulation.
 }
