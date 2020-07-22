@@ -996,7 +996,7 @@ fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
                spline_specs = spline_specs, DMs = DMs, hessian = hessian_ff)
   
   # To ensure a bootstrap call has the estimated site totals:
-  if (bootFLAG & dist_choice == "P"){
+  if (dist_choice == "P"){
     N_A <- profile_ll(fit$par, obs = obs, skeleton = skeleton,
                       a_choice = a_choice, dist_choice = dist_choice,
                       spline_specs = spline_specs, returnN = T, DMs = DMs)
@@ -1020,9 +1020,6 @@ fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
     N_A <- profile_ll(fit$par, obs = obs, skeleton = skeleton,
                       a_choice = a_choice, dist_choice = dist_choice,
                       spline_specs = spline_specs, returnN = T, DMs = DMs)
-    
-    fit$A <- N_A$a_func
-    fit$N <- N_A$N
   }
   
   if (bootFLAG) return(list(A = N_A$a_func, N = N, mle = fit$par))
@@ -1040,6 +1037,8 @@ fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
     class(fit$skeleton) <- c(class(fit$skeleton), "GAIskel")
     fit$maxiter <- maxiter
     fit$options <- options
+    fit$A <- N_A$a_func
+    fit$N <- N_A$N
     fit$DMs <- DMs
     fit$obs <- obs
     fit$tol <- tol
@@ -1778,5 +1777,39 @@ bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
 }
 
 
+logLik.GAI <- function(GAIobj){
+  # purpose : A simple function which extracts the number of fitted parameters 
+  #           and log likelihood of a fitted GAI model, so that the AIC generic
+  #           function can be used
+  # inputs  : GAIobj - A fitted GAI model output of class "GAI"
+  # output  : An object of class "logLik"
+  df <- length(GAIobj$par)
+  ll <- -GAIobj$value
+  attr(ll, "df") <- df 
+  class(ll) <- "logLik"
+  return(ll)
+}
 
+summary.GAI <- function(GAIobj){
+  # purpose : Produces a table of summary outputs for objects fitted with the
+  #           the fit_GAI function.
+  # inputs  : GAIobj - A fitted GAI model output of class "GAI"
+  # output  : A "summary.GAI" object
+  output <- list()
+  output$MLE <- GAIobj$par
+  output$AIC <- AIC(GAIobj)
+  output$N <-GAIobj$N
+  
+  class(output) <- "summary.GAI"
+  return(output)
+}
+
+print.summary.GAI <- function(obj){
+  # purpose : Prints the output generated from the summary.GAI function
+  cat("Maximum Likelihood Estimates (MLEs):\n\n")
+  print(obj$MLE)
+  cat("\n\nAkaike's Information Criterion (AIC):", obj$AIC, "\n\n")
+  cat("Average estimated site super-population size:",
+      obj$N %>% na.omit %>% mean,"\n")
+}
 
