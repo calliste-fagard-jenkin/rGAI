@@ -13,7 +13,7 @@
 #' Options should be specified to give more detail of the model being fitted.
 #' Bootstraps can be used to produce confidence interval estimates of the 
 #' abundance index and parameter values.
-#' @author C. Fagard-Jenkin, based on work by E. Dennis
+#' @author C. Fagard-Jenkin, based on work by E. Dennis, et al.
 #' @name GAI
 #' @useDynLib GAI
 #' @importFrom Rcpp sourceCpp
@@ -1777,6 +1777,14 @@ bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
 }
 
 
+#' Log likelihood extraction
+#' 
+#' Extracts the (postive) log likelihood value from an output from the fit_GAI
+#' function, notably for use by the AIC function
+#' @param GAIobj An object produced by using fit_GAI for model fitting
+#' @return An object object of class "logLik" with an attribute "df" equal to 
+#' the number of fitted parameters for the model at hand.
+#' @export
 logLik.GAI <- function(GAIobj){
   # purpose : A simple function which extracts the number of fitted parameters 
   #           and log likelihood of a fitted GAI model, so that the AIC generic
@@ -1790,6 +1798,13 @@ logLik.GAI <- function(GAIobj){
   return(ll)
 }
 
+#' GAI model summary
+#' 
+#' Produces a set of model summaries for fitted GAI models. Includes the AIC, 
+#' the MLEs and the average estmated site total across sites.
+#' @param GAIobj An object produced by using fit_GAI for model fitting
+#' @return An object object of class "summary.GAI"
+#' @export
 summary.GAI <- function(GAIobj){
   # purpose : Produces a table of summary outputs for objects fitted with the
   #           the fit_GAI function.
@@ -1804,6 +1819,15 @@ summary.GAI <- function(GAIobj){
   return(output)
 }
 
+
+#' GAI model summary printing
+#' 
+#' Prints the output of a GAI model summary, to display the information to the
+#' end user.
+#' @param obj An object produced by using the summary.GAI function an a model
+#' output produce by fit_GAI.
+#' @return An object object of class "summary.GAI"
+#' @export
 print.summary.GAI <- function(obj){
   # purpose : Prints the output generated from the summary.GAI function
   cat("Maximum Likelihood Estimates (MLEs):\n\n")
