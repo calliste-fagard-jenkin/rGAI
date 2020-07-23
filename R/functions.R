@@ -2009,7 +2009,7 @@ print.summary.GAI <- function(obj){
 #' @return NULL
 #' @export
 plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
-                     scale_by_N = T, colours = 1:8, inset = c(-0.25, 0.5),
+                     scale_by_N = T, colours = 1:8, shift = c(-0.25, 0.5),
                      ...){
   # purpose : Produces simple plots of the flight path distribution of a GAI
   # inputs  :GAIobj     - The fitted GAI model object from the fit_GAI function
@@ -2049,7 +2049,7 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
   else leg <- paste("quantile", quantiles)
   
   legend("bottomright", legend = leg, fill = colours[1:nrow(A)],
-         inset = c(-0.2, 0.5), bty = "n")
+         inset = shift, bty = "n")
   
   # Restore default margins:
   par(mar = c(5, 4, 4, 2) + 0.1)
