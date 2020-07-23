@@ -938,11 +938,16 @@ check_GAI_inputs <- function(start, obs, a_choice, dist_choice, options,
 #' @param bootstrap Always NULL for the user.. Internally, bootstraps use
 #' this argument to pass in sanitised precalculations to speed up the refitting
 #' process of 'refit-the-model' bootstraps
+#' @param method A character for the method which should be used to find MLEs.
+#' See optim documentation for options and further detail. SANN (simulated 
+#' annealing) can be a good method of fine-tuning starting points, if one is 
+#' afraid their MLEs are caught in a local maxima.
 #' @return a fitted optim object
 #' @export
 fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
                     options = list(), tol = 1e-3, maxiter = 1e3,
-                    verbose = F, hessian = F, bootstrap = NULL){
+                    verbose = F, hessian = F, bootstrap = NULL,
+                    method = "Nelder-Mead"){
   # purpose : Fits a GAI with either spline, mixture or stopover seasonal flight
   #           curves and either P, NB or ZIP distributed counts of individuals
   # inputs  : start       - The vector of start guesses for the parameters.
@@ -1013,7 +1018,8 @@ fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
   hessian_ff <- hessian & dist_choice == "P"
   fit <- optim(profile_ll, par = start, obs = obs, skeleton = skeleton,
                a_choice = a_choice, dist_choice = dist_choice,
-               spline_specs = spline_specs, DMs = DMs, hessian = hessian_ff)
+               spline_specs = spline_specs, DMs = DMs, hessian = hessian_ff,
+               method = method)
   
   # To ensure a bootstrap call has the estimated site totals:
   if (dist_choice == "P"){
@@ -1034,7 +1040,8 @@ fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
     
     # The iterative process:
     fit <- iterate_GAI(N, fit, obs, skeleton, a_choice, dist_choice,
-                       spline_specs, tol, maxiter, DMs, verbose, hessian)
+                       spline_specs, tol, maxiter, DMs, verbose, hessian,
+                       method)
     
     # Add the GAI, seasonal component and estimated density:
     N_A <- profile_ll(fit$par, obs = obs, skeleton = skeleton,
@@ -1072,7 +1079,8 @@ fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
 }#fit_gai
 
 iterate_GAI <- function(N, fit, obs, skeleton, a_choice, dist_choice,
-                        spline_specs, tol, maxiter, DMs, verbose, hessian){
+                        spline_specs, tol, maxiter, DMs, verbose, hessian,
+                        method){
   # purpose : Performs the iterative process for the NB and ZIP models, given
   #           an initial fit
   # inputs  : see fit_gai
@@ -1105,7 +1113,8 @@ iterate_GAI <- function(N, fit, obs, skeleton, a_choice, dist_choice,
     # refit the model using this version of N
     t.fit <- optim(fit$par, profile_ll, obs = obs, skeleton = skeleton,
                    a_choice = a_choice, dist_choice = dist_choice,
-                   spline_specs = spline_specs, N = N, DMs = DMs)
+                   spline_specs = spline_specs, N = N, DMs = DMs,
+                   method = method)
     
     if (t.fit$value > prev_val) break
     else fit <- t.fit
@@ -1121,7 +1130,7 @@ iterate_GAI <- function(N, fit, obs, skeleton, a_choice, dist_choice,
     fit <- optim(fit$par, profile_ll, obs = obs, skeleton = skeleton,
                  a_choice = a_choice, dist_choice = dist_choice,
                  spline_specs = spline_specs, N = N, DMs = DMs,
-                 hessian = hessian)
+                 hessian = hessian, method = method)
   }
   
   return(fit)
