@@ -25,7 +25,7 @@ NumericVector probs_link(NumericVector x){
   // Loop to determine the probability of being in each group:
   double prob(1);
   for (int i = 1; i < xLen; i++){
-    prob = left*linked[i];
+    prob = left * linked[i];
     output[i] = prob;
     left = left - prob;
   }

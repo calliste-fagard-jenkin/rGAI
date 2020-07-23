@@ -1152,7 +1152,7 @@ thin_NA <- function(matvec, alpha = 0.3){
 #' Performs the backtransform of the link function which is used to specify the
 #' means of the broods
 #' @param vec The vector of (positive) means which should be backtransformed to 
-#' the real line
+#' the link-scale space
 #' @return A vector of the same length as vec, of backtransformed values
 #' @export
 means_backtransform <- function(vec){
@@ -1164,12 +1164,127 @@ means_backtransform <- function(vec){
   vec %>% log %>% return
 }
 
+#' Backtransform for weights
+#' 
+#' Performs the backtransform of the link function which is used to specify the
+#' weights of the broods
+#' @param vec The vector of weights between 0 and 1 which should be
+#' backtransformed to the link-scale space
+#' @return A vector of the same length as vec, of backtransformed values
+#' @export
+probs_backtransform <- function(vec, tol = 1e-10){
+  # purpose : Takes a vector of weights and produces the vector of values which
+  #           leads to those weights when passed to probs_link()
+  # inputs  : vec - The vector of weights to be backtransformed
+  #           tol - The tolerance for the maximum amount the sum of the input
+  #                 weights is allowed to differ from 1.
+  # outputs : A vector of the same length as vec, of backtransformed values
+  n <- length(vec)
+  output <- rep(NA, n)
+  left <- 1
+  
+  for (i in 1:n){
+    output[i] <- vec[i] / left
+    left <- left - vec[i]
+  }
+  
+  return(qlogis(output[1:(n - 1)]))
+}
+
+
+transform_values <- function(base, starting, skeleton){
+  # purpose : Takes a given parameter type ("mu", "sigma" or "w") and performs
+  #           the required checks to backtransform user supplied values onto the
+  #           package's link scale
+  # inputs  : base     - The character name of the paramter type "mu", "sigma"
+  #                      or "w"
+  #           starting - The list of starting values that the user gave
+  #           skeleton - The skeleton for the specified model
+  
+  if (starting_values[[base]] %>% is.null %>% `!`){
+    skel_vals <- skeleton[[base]]
+    real_vals <- starting_values[[base]]
+    lsv <- length(skel_vals)
+    lrv <- length(real_vals)
+    
+    if (lsv != lrv){
+      message <- paste(lsv, base, "values expected, but", lrv, "were given.",
+                       "Therefore", base, "starting values are set to 0.")
+      warning(message)
+    }#if
+    
+    else{
+      starting[[base]] <- switch(base,
+                                 mu = means_backtransform,
+                                 w = probs_backtransform,
+                                 sigma = log)
+                                 
+    }#else
+  }#if (starting_values[[base]])
+  return(starting)
+}#transform_values_one_param
+
+#' Transform starting values to the link scale
+#' 
+#' Takes in starting guesses for parameter values, and maps them to the real 
+#' valued link scale. Even parameters already on the real scale (such as
+#' means) are transformed, to ensure they are uniquely determined. Starting
+#' values for splines and covariates are always set to 0, as are starting
+#' values for parameters that aren't specified.
+#' @param starting_values A named list including starting values for "mu",
+#' "sigma", "w" and "dist.par" (in the case of a non-poisson model)
+#' @param a_choice The choice of flight path distribution
+#' @param dist_choice The choice of observed count distribution
+#' @param options The list of model options that specify the number of broods, 
+#' spline parameters, covariate formulas, etc.
+#' @param DF A data.frame which must be included when covariate formulas are
+#' specified, so that the correct number of parameters required by each 
+#' formula can be determined. Calling extract_counts on this data.frame first
+#' to sanitise it is recommended
+#' @return A named list of starting parameter values, all on the link scale.
+#' @export
+transform_starting_values <- function(starting_values, a_choice, dist_choice,
+                                      options, DF = NULL){
+  # purpose : Takes a named list of inputs and outputs the vector of parameters
+  #           expected by fit_GAI, on the link scale
+  # inputs  : A named list of parameter values on the real scale
+  # output  : A named vecotr of parameter values on the real scale.
+  skeleton <- produce_skeleton(a_choice, dist_choice, options, DF)$skeleton
+  # Add a default guess of 0 for each parameter value, and then relist the
+  # the skeleton for convenience:
+  output <- rep(0, skeleton %>% unlist %>% length) %>% relist(skeleton)
+  names(output) <- names(skeleton)
+  
+  # A lazy guess of all 0s for splines:
+  if (a_choice == "splines") return(output)
+  
+  else{
+    # For mixtures and stopovers, go through means, sigmas and ws and transform 
+    # the values given by the user with the link functions. Covariate parameters
+    # will be given a default of 0, as well as anything that hasn't been
+    # specified:
+    starting_values %<>% transform_values(base = "mu", skeleton = skeleton)
+    starting_values %<>% transform_values(base = "sigma", skeleton = skeleton)
+    starting_values %<>% transform_values(base = "w", skeleton = skeleton)
+    
+    if (dist_choice != "P"){
+      if (starting_values[["dist.par"]] %>% is.null %>% `!`){
+        # Make sure the distributional parameter is on the right scale for a 
+        # negative binomial (log link) and zero-inflated poisson (logistic link)
+        linkfunc <- switch(dist_choice, NB = log, ZIP = qlogis)
+        starting_values[["dist.par"]] <- linkfunc(starting_values[["dist.par"]])
+      }#if starting_values
+    }#if dist_choice
+  }#else
+  starting_values %>% unlist %>% return
+}
+
 #' Extract a count matrix from a data.frame
 #' 
 #' Loops through unique values of 'occasion' and 'site' in a data.frame in order
 #' to extract the matrix of observed counts required for GAI model fitting
 #' @param data_frame A data.frame with columns "site", "occasion" and "counts"
-#' @param checls if TRUE, checks that all counts are specified
+#' @param checks if TRUE, checks that all counts are specified
 #' @param returnDF if TRUE returns instead a list with the matrix of counts as
 #' well as a reordered version of the data.frame so that the rows match the
 #' matrix output.
