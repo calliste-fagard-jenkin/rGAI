@@ -1207,6 +1207,10 @@ transform_values <- function(base, starting, skeleton){
     lsv <- length(skel_vals)
     lrv <- length(real_vals)
     
+    # For the weights, the user is expected to enter one more value than there
+    # are final parameters:
+    if (base == "w") lsv <- lsv + 1
+    
     if (lsv != lrv){
       message <- paste(lsv, base, "values expected, but", lrv, "were given.",
                        "Therefore", base, "starting values are set to 0.")
@@ -1215,9 +1219,9 @@ transform_values <- function(base, starting, skeleton){
     
     else{
       starting[[base]] <- switch(base,
-                                 mu = means_backtransform,
-                                 w = probs_backtransform,
-                                 sigma = log)
+                                 mu = means_backtransform(starting[[base]]),
+                                 w = probs_backtransform(starting[[base]]),
+                                 sigma = log(starting[[base]]))
                                  
     }#else
   }#if (starting_values[[base]])
@@ -1250,10 +1254,22 @@ transform_starting_values <- function(starting_values, a_choice, dist_choice,
   # inputs  : A named list of parameter values on the real scale
   # output  : A named vecotr of parameter values on the real scale.
   skeleton <- produce_skeleton(a_choice, dist_choice, options, DF)$skeleton
+  
+  mu_guess <- starting_values[["mu"]]
+  sigma_guess <- starting_values[["sigma"]]
+  w_guess <- starting_values[["w"]]
+  dist_guess <- starting_values[["dist.par"]]
+  
   # Add a default guess of 0 for each parameter value, and then relist the
   # the skeleton for convenience:
   output <- rep(0, skeleton %>% unlist %>% length) %>% relist(skeleton)
   names(output) <- names(skeleton)
+  
+  # Add in the user guesses for "mu", "sigma", "w" and "dist.par" if they exist:
+  if (!is.null(dist_guess))  output[["dist.par"]] <- dist_guess
+  if (!is.null(sigma_guess))  output[["sigma"]] <- sigma_guess
+  if (!is.null(mu_guess))  output[["mu"]] <- mu_guess
+  if (!is.null(w_guess))  output[["w"]] <- w_guess
   
   # A lazy guess of all 0s for splines:
   if (a_choice == "splines") return(output)
@@ -1263,20 +1279,20 @@ transform_starting_values <- function(starting_values, a_choice, dist_choice,
     # the values given by the user with the link functions. Covariate parameters
     # will be given a default of 0, as well as anything that hasn't been
     # specified:
-    starting_values %<>% transform_values(base = "mu", skeleton = skeleton)
-    starting_values %<>% transform_values(base = "sigma", skeleton = skeleton)
-    starting_values %<>% transform_values(base = "w", skeleton = skeleton)
+    output %<>% transform_values(base = "mu", skeleton = skeleton)
+    output %<>% transform_values(base = "sigma", skeleton = skeleton)
+    output %<>% transform_values(base = "w", skeleton = skeleton)
     
     if (dist_choice != "P"){
       if (starting_values[["dist.par"]] %>% is.null %>% `!`){
         # Make sure the distributional parameter is on the right scale for a 
         # negative binomial (log link) and zero-inflated poisson (logistic link)
         linkfunc <- switch(dist_choice, NB = log, ZIP = qlogis)
-        starting_values[["dist.par"]] <- linkfunc(starting_values[["dist.par"]])
+        output[["dist.par"]] <- linkfunc(starting_values[["dist.par"]])
       }#if starting_values
     }#if dist_choice
   }#else
-  starting_values %>% unlist %>% return
+  output %>% unlist %>% return
 }
 
 #' Extract a count matrix from a data.frame
