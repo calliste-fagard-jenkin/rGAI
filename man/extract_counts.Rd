@@ -9,11 +9,11 @@ extract_counts(data_frame, checks = T, returnDF = T)
 \arguments{
 \item{data_frame}{A data.frame with columns "site", "occasion" and "counts"}
 
+\item{checks}{if TRUE, checks that all counts are specified}
+
 \item{returnDF}{if TRUE returns instead a list with the matrix of counts as
 well as a reordered version of the data.frame so that the rows match the
 matrix output.}
-
-\item{checls}{if TRUE, checks that all counts are specified}
 }
 \value{
 A matrix of counts, with rows as sites and columns as occasions.
