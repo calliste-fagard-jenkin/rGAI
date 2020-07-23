@@ -2009,8 +2009,7 @@ print.summary.GAI <- function(obj){
 #' @return NULL
 #' @export
 plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
-                     scale_by_N = T, colours = 1:8, shift = c(-0.25, 0.5),
-                     ...){
+                     scale_by_N = T, colours = 1:8, shift = c(-0.25, 0.5)){
   # purpose : Produces simple plots of the flight path distribution of a GAI
   # inputs  :GAIobj     - The fitted GAI model object from the fit_GAI function
   #          all_sites  - If TRUE, the curves for every single site are plotted
@@ -2037,11 +2036,11 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
   # Produce the plot for the first row:
   par(xpd = T, mar = par()$mar + c(0, 0, 0, 8))
   plot(A[1,], type = 'l', xlab = "Occasion", ylab = ylab, ylim = range(A),
-       col = colours[1], pch = 16, ...)
+       col = colours[1], pch = 16)
   
   # Add on all the others:
   if (plot_lines > 1){
-    for (i in 2:plot_lines) lines(A[i,], col = colours[i], pch = 16, ...)
+    for (i in 2:plot_lines) lines(A[i,], col = colours[i], pch = 16)
   }
   
   # Create the legend:
