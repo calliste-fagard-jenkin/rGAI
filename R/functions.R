@@ -1244,7 +1244,7 @@ transform_values <- function(base, starting, skeleton){
 #' @return A named list of starting parameter values, all on the link scale.
 #' @export
 transform_starting_values <- function(starting_values, a_choice, dist_choice,
-                                      options, DF = NULL){
+                                      options, DF = list()){
   # purpose : Takes a named list of inputs and outputs the vector of parameters
   #           expected by fit_GAI, on the link scale
   # inputs  : A named list of parameter values on the real scale
