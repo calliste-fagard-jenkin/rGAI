@@ -1433,11 +1433,6 @@ lin_predictor <-  function(parameters, DM, check = T){
   # of parameters has been supplied for the relationship specified by the 
   # passed formula object:
   LP <-  try({DM %*% parameters}, silent = T)
-  
-  if (check & class(LP) == 'try-error'){
-      stop('Incorrect number of parameters supplied to lin_predictor')
-  }
-  
   return(LP)
 }
 
