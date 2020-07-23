@@ -10,6 +10,7 @@
   quantiles = c(0.05, 0.5, 0.95),
   scale_by_N = T,
   colours = 1:8,
+  inset = c(-0.25, 0.5),
   ...
 )
 }
@@ -29,6 +30,9 @@ will be scaled by that site's estimated site total. Defaults to TRUE.}
 \item{colours}{A vector of colour values to be used for plotting the
 different curves. Defaults to integers 1:8 to represent the R base graphics
 colours, but can also take character hex colour values.}
+
+\item{inset}{A vector of displacement in the x and y directions respectively, 
+that will move where the legends are placed outside of the plot window}
 }
 \description{
 Prints the flight path curves of a fitted GAI model with options to scale

@@ -2004,10 +2004,13 @@ print.summary.GAI <- function(obj){
 #' @param colours A vector of colour values to be used for plotting the
 #' different curves. Defaults to integers 1:8 to represent the R base graphics
 #' colours, but can also take character hex colour values.
+#' @param inset A vector of displacement in the x and y directions respectively, 
+#' that will move where the legends are placed outside of the plot window
 #' @return NULL
 #' @export
 plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
-                     scale_by_N = T, colours = 1:8, ...){
+                     scale_by_N = T, colours = 1:8, inset = c(-0.25, 0.5),
+                     ...){
   # purpose : Produces simple plots of the flight path distribution of a GAI
   # inputs  :GAIobj     - The fitted GAI model object from the fit_GAI function
   #          all_sites  - If TRUE, the curves for every single site are plotted
@@ -2032,7 +2035,7 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
   if (scale_by_N) ylab %<>% paste("scaled by site total")
   
   # Produce the plot for the first row:
-  par(xpd=T, mar=par()$mar + c(0,0,0,8))
+  par(xpd = T, mar = par()$mar + c(0, 0, 0, 8))
   plot(A[1,], type = 'l', xlab = "Occasion", ylab = ylab, ylim = range(A),
        col = colours[1], pch = 16, ...)
   
@@ -2046,8 +2049,8 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
   else leg <- paste("quantile", quantiles)
   
   legend("bottomright", legend = leg, fill = colours[1:nrow(A)],
-         inset = c(-0.25, 0.5), bty = "n")
+         inset = c(-0.2, 0.5), bty = "n")
   
   # Restore default margins:
-  par(mar=c(5, 4, 4, 2) + 0.1)
+  par(mar = c(5, 4, 4, 2) + 0.1)
 }
