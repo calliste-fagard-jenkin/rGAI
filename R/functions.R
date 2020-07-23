@@ -1988,3 +1988,66 @@ print.summary.GAI <- function(obj){
       obj$N %>% na.omit %>% mean,"\n")
 }
 
+#' GAI flight path plotting
+#' 
+#' Prints the flight path curves of a fitted GAI model with options to scale
+#' by estimated site total, and avoid plotting all sites by smoothing through
+#' results for each sites by taking a given quantile at each time point
+#' @param GAIobj An object produced by using the summary.GAI function an a model
+#' output produce by fit_GAI.
+#' @param all_sites If TRUE, the curves for every single site are plotted rather
+#'  than a smooth through the curves from each site. Defaults to FALSE.
+#' @param quantiles For when all_sites = F, a vector of quantiles that will each
+#' be used to produce a curve. Defaults to c(0.05, 0.5, 0.95)
+#' @param scale_by_N If TRUE, then the seasonal flight component for each site
+#' will be scaled by that site's estimated site total. Defaults to TRUE.
+#' @param colours A vector of colour values to be used for plotting the
+#' different curves. Defaults to integers 1:8 to represent the R base graphics
+#' colours, but can also take character hex colour values.
+#' @return NULL
+#' @export
+plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
+                     scale_by_N = T, colours = 1:8, ...){
+  # purpose : Produces simple plots of the flight path distribution of a GAI
+  # inputs  :GAIobj     - The fitted GAI model object from the fit_GAI function
+  #          all_sites  - If TRUE, the curves for every single site are plotted
+  #                       rather than a smooth through the curves from each site
+  #          quantiles  - For when all_sites = F, a vector of quantiles that 
+  #                       will each be used to produce a curve
+  #          scale_by_N - If TRUE, then the seasonal flight component for each
+  #                       site will be scaled by that site's estimated site 
+  #                       total
+  #          colours    - A list of colour values to be used for
+  #                       plotting different curves.
+  # output  : NULL
+  A <- GAIobj$A
+  
+  # Change the data based on user options:
+  if (scale_by_N) A %<>% `*`(rep(GAIobj$N, ncol(A)))
+  if (!all_sites) A %<>% apply(2, quantile, probs = quantiles, na.rm = T)
+  
+  # Determine the correct plot labels:
+  plot_lines <- nrow(A)
+  ylab <- "Seasonal flight path"
+  if (scale_by_N) ylab %<>% paste("scaled by site total")
+  
+  # Produce the plot for the first row:
+  par(xpd=T, mar=par()$mar + c(0,0,0,8))
+  plot(A[1,], type = 'l', xlab = "Occasion", ylab = ylab, ylim = range(A),
+       col = colours[1], pch = 16, ...)
+  
+  # Add on all the others:
+  if (plot_lines > 1){
+    for (i in 2:plot_lines) lines(A[i,], col = colours[i], pch = 16, ...)
+  }
+  
+  # Create the legend:
+  if (all_sites) leg <- paste("site", 1:nrow(A))
+  else leg <- paste("quantile", quantiles)
+  
+  legend("bottomright", legend = leg, fill = colours[1:nrow(A)],
+         inset = c(-0.25, 0.5), bty = "n")
+  
+  # Restore default margins:
+  par(mar=c(5, 4, 4, 2) + 0.1)
+}
