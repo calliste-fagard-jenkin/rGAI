@@ -1201,9 +1201,9 @@ transform_values <- function(base, starting, skeleton){
   #           starting - The list of starting values that the user gave
   #           skeleton - The skeleton for the specified model
   
-  if (starting_values[[base]] %>% is.null %>% `!`){
+  if (starting[[base]] %>% is.null %>% `!`){
     skel_vals <- skeleton[[base]]
-    real_vals <- starting_values[[base]]
+    real_vals <- starting[[base]]
     lsv <- length(skel_vals)
     lrv <- length(real_vals)
     
