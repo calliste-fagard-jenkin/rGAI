@@ -10,8 +10,7 @@
   quantiles = c(0.05, 0.5, 0.95),
   scale_by_N = T,
   colours = 1:8,
-  inset = c(-0.25, 0.5),
-  ...
+  shift = c(-0.25, 0.5)
 )
 }
 \arguments{

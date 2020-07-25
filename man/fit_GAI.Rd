@@ -14,7 +14,8 @@ fit_GAI(
   maxiter = 1000,
   verbose = F,
   hessian = F,
-  bootstrap = NULL
+  bootstrap = NULL,
+  method = "Nelder-Mead"
 )
 }
 \arguments{
@@ -54,6 +55,11 @@ optim, usually so that this can be used to conduct a bootstrap}
 \item{bootstrap}{Always NULL for the user.. Internally, bootstraps use
 this argument to pass in sanitised precalculations to speed up the refitting
 process of 'refit-the-model' bootstraps}
+
+\item{method}{A character for the method which should be used to find MLEs.
+See optim documentation for options and further detail. SANN (simulated 
+annealing) can be a good method of fine-tuning starting points, if one is 
+afraid their MLEs are caught in a local maxima.}
 }
 \value{
 a fitted optim object
