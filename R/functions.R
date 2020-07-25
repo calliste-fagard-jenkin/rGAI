@@ -1456,73 +1456,28 @@ is_time_varying <- function(DM, DF){
   return(output)
 }
 
-produce_DMs <- function(options, DF, a_type){
-  # purpose : Produces a list of design matrices given a data.frame of
-  #           covariate values, and a list of options which contains formulas
-  #           for specifying covariate relationships
-  # inputs  : options - The options list passed to fit_gai() which contains
-  #                     specifications for the model being fitted, including
-  #                     the specified covariate relationships.
-  #           DF      - The data.frame containing the data and the covariate
-  #                     values.
-  #           a_type  - The type of curve to be fitted (determines what types
-  #                     of covariates are allowed, and how we make the design
-  #                     matrices).
-  # output  : A named list of design matrices.
-  if (a_type == "splines"){
-    warning('covariates cannot be used with splines')
-    options <- NULL # ensures function doesn't try to produce DMs
-  }
-  
-  output <- list()
-  nS <- DF$site %>% unique %>% length
-  
-  # make the brood mean arrival time design matrix:
-  if (!is.null(options$mu_formula))
-    output$mu <- design_matrix(DF, options$mu_formula)
-  
-  # make the brood arrival time sd design matrix:
-  if (!is.null(options$sigma_formula))
-    output$sigma <- design_matrix(DF, options$sigma_formula)
-  
-  # make the brood arrival time weight design matrix:
-  if (!is.null(options$w_formula))
-    output$w <- design_matrix(DF, options$w_formula)
-  
-  # if the model is a stopover model, we must check covariates are not time-
-  # varying:
-  if (a_type == "stopover"){
-    time_varying <- lapply(output, is_time_varying, DF = DF) %>% as.logical
-    
-    if (any(time_varying)){
-      message_1 <- "Time varying covariates are not allowed in the parameters"
-      message_2 <- "for the mean, sd, or weight of the arrival times for each"
-      message_3 <- "brood. Any formulas containing time varying covariates have"
-      message_4 <- "been ignored."
-      
-      paste(message_1, message_2, message_3, message_4) %>% warning
-    }
-    
-    if (length(time_varying > 0)){ # when no covariates are used, this is 0.
-      for (i in 1:length(time_varying)){
-        if (time_varying[i]) output[[i]] <- NULL
-      }
-    }
-    
-    # In the case of a stopover model, we know covariates are not time_varying, 
-    # so we only need to return the parameter values for each site, and not
-    # each individual observation:
-    helper <- function(dm, ns) dm[1:ns,]
-    output %<>% lapply(helper, ns = nS)
-    class(output) <- "stopover"
-  }# if (a_type == "stopover)
-  
-  class(output) <- c(class(output), "GAIdesignmatrix")
-  return(output)
-}
 
-
+#' Parameter value finding helper for covariate inclusion
+#'
+#'  A helper function which obtains the linear predictor for a given set of
+#'  parameters ('mu', 'sigma') etc, by scanning the list of design matrices and
+#'  the model skeleton for the relevant information
+#' @param brood the parameter number (integer) within the sequence. If being
+#' used by the package internally, this is almost always the brood number
+#' @param is_indiv A boolean indicating if the parameter for this given brood is
+#'  specified with a brood specific formula
+#' @param is_general A boolean indicating if the parameter for this given is the
+#'  same as that of the other broods
+#' @param par A vector of parameter estimates, typically supplied by optiim
+#' @param base The character name of the type of parameter. "mu", "sigma", or
+#' "w"
+#' @param DMs The list of design matrices which contains all of the design
+#' matrices required to calculated the value of each parameter given its
+#' covariate values
+#' @return A matrix of parameter values, to be used by
+#' get_parameter_values_all_rows 
 lp_func <- function(brood, is_indiv, is_general, par, base, DMs){
+  
   is_covariate <- is_indiv | is_general
   if (!is_covariate) par[[base]] %>% `[`(brood) %>% return
   
@@ -1539,9 +1494,28 @@ lp_func <- function(brood, is_indiv, is_general, par, base, DMs){
     par[[base]] %>% `[`(brood) %>% c(par[[index]]) %>%
       list %>% c(DMs[[paste(base, extension, sep = "")]] %>% list) %>%
       do.call(what = lin_predictor) %>% return
+    # No longer the most horrific piece of code, since it turns out this
+    # approach was very versatile for performing smilar tasks at other points
+    # in the package.
   }#else
 }#lp_func
 
+
+#' Parameter value finding helper for covariate inclusion
+#'
+#'  A helper function which uses lp_func to get the values of parameters with 
+#'  a covariate formula, for 
+#'  all sites.
+#' @param base The character name of the type of parameter. "mu", "sigma", or
+#' "w"
+#' @param par A vector of parameter estimates, typically supplied by optiim
+#' @param DMs The list of design matrices which contains all of the design
+#' matrices required to calculated the value of each parameter given its
+#' covariate values
+#' @param B The number of parameters for which the base needs to be used.
+#' Typically the same as the number of broods, i.e. one mean arrival time per
+#' brood,
+#' @return A matrix of pwrameter values to be used by get_parameter_values
 get_parameter_values_all_rows <- function(base, par, DMs, B){
   # purpose : Helper which extracts the correct information from parameter 
   #           and design matrix object to calculate the correct final 
@@ -1591,6 +1565,20 @@ get_parameter_values_all_rows <- function(base, par, DMs, B){
   output %>% do.call(what = cbind) %>% return()
 }#get_parameter_values_all_rows
 
+
+#' Determine if a given parameter uses covariates
+#'
+#'  PArses through a GAI model's skeleton and design matrix list to determine
+#'  which type of covariate specification has been used (No covariates, the
+#'  same formula for each brood, or brood-specific formulas)
+#' @param base The character name of the type of parameter. "mu", "sigma", or
+#' "w"
+#' @param par A vector of parameter estimates, typically supplied by optiim
+#' @param DMs The list of design matrices which contains all of the design
+#' matrices required to calculated the value of each parameter given its
+#' covariate values
+#' @return A boolean. TRUE if the parameter "base" uses covaraites, and 
+#' FALSE otherwise.
 contains_covariates <- function(base, par, DMs){
   # purpose : Scans the (unlisted) parameters and design matrices objects to 
   #           determine if a type of parameter (means, standard deviations, 
