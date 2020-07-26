@@ -4,13 +4,8 @@
 \alias{transform_starting_values}
 \title{Transform starting values to the link scale}
 \usage{
-transform_starting_values(
-  starting_values,
-  a_choice,
-  dist_choice,
-  options,
-  DF = list()
-)
+transform_starting_values(starting_values, a_choice, dist_choice, options,
+  DF = list())
 }
 \arguments{
 \item{starting_values}{A named list including starting values for "mu",

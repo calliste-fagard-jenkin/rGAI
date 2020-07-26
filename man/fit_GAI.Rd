@@ -4,19 +4,9 @@
 \alias{fit_GAI}
 \title{GAI model fitting}
 \usage{
-fit_GAI(
-  start,
-  DF,
-  a_choice = "mixture",
-  dist_choice = "P",
-  options = list(),
-  tol = 0.001,
-  maxiter = 1000,
-  verbose = F,
-  hessian = F,
-  bootstrap = NULL,
-  method = "Nelder-Mead"
-)
+fit_GAI(start, DF, a_choice = "mixture", dist_choice = "P",
+  options = list(), tol = 0.001, maxiter = 1000, verbose = F,
+  hessian = F, bootstrap = NULL, method = "Nelder-Mead")
 }
 \arguments{
 \item{start}{The vector of start guesses for the parameters.}

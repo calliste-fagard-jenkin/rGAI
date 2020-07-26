@@ -668,11 +668,15 @@ get_cov_skeleton_and_DM <- function(base, options, DF, n, skeleton, DMs){
   # outputs : A named list containing the updated skeleton and DMs objects
   # Extract the formulas from the options:
   formulas <- options[[paste(base, "_formula", sep = "")]]
+  tvm <- "Covariate values must vary by site only, and not through time"
   
   # If the formula contains more than one thing, then it's a general formula 
   # shared among all of the 'base' type parameters:
   if (class(formulas) == "formula"){
+    # Check formula doesn't involve NA covariate values or time-varying 
+    # covariates:
     DMs[[base]] <- design_matrix(DF, formulas)
+    if (is_time_varying(DMs[[base]], DF)) stop(tvm)
     skeleton[[paste(base, ".cov", sep = "")]] <- rep(NA, ncol(DMs[[base]]) - 1)
   }
   
@@ -688,6 +692,7 @@ get_cov_skeleton_and_DM <- function(base, options, DF, n, skeleton, DMs){
       
       # Produce the design matrix and update the output objects:
       DMs[[paste(base, i, sep = "")]] <- design_matrix(DF, current_formula)
+      if (is_time_varying(DMs[[paste(base, i, sep = "")]], DF)) stop(tvm)
       n_par <- DMs[[paste(base, i, sep = "")]] %>% ncol %>% `-`(1)
       skeleton[[paste(base, i, ".cov", sep = '')]] <- rep(NA, n_par)
     }#for
@@ -1452,6 +1457,8 @@ is_time_varying <- function(DM, DF){
     
     if (s_check){output <- TRUE; break}
   }
+  
+  if (is.na(DM) %>% any) stop("NA covariate values aren't allowed")
   
   return(output)
 }

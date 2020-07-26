@@ -4,17 +4,9 @@
 \alias{profile_ll}
 \title{Profile (concentrated) likelihood evaluation for GAI}
 \usage{
-profile_ll(
-  par,
-  obs,
-  skeleton,
-  a_choice = "mixture",
-  dist_choice = "P",
-  spline_specs = list(df = 10, degree = 3),
-  N = NULL,
-  returnN = F,
-  DMs = list()
-)
+profile_ll(par, obs, skeleton, a_choice = "mixture", dist_choice = "P",
+  spline_specs = list(df = 10, degree = 3), N = NULL, returnN = F,
+  DMs = list())
 }
 \arguments{
 \item{par}{A vector of estimated parameters for the model}

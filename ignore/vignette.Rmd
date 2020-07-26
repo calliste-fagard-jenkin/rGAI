@@ -248,16 +248,17 @@ test_data %>% apply(2, mean, na.rm = T) %>%
        xlab = 'Week', ylab = 'Observed count, averaged across all sites')
 
 plot.col <- 'blue'
+plot.base <- 1
 
 # Mean brood arrival lines:
-lines(rep(4.1, 2), c(0.005, 0.032), col = plot.col)
-lines(rep(13.0, 2), c(0.005, 0.16), col = plot.col)
-lines(rep(23.0, 2), c(0.005, 0.054), col = plot.col) 
+lines(rep(4.1, 2), c(plot.base, 4.6), col = plot.col)
+lines(rep(13.0, 2), c(plot.base, 21.3), col = plot.col)
+lines(rep(23.0, 2), c(plot.base, 8), col = plot.col) 
 
 # Mean brood dispersion lines:
-lines(c(1, 8), rep(0.005, 2), col = plot.col)
-lines(c(9, 18), rep(0.005, 2), col = plot.col)
-lines(c(19, 26), rep(0.005, 2), col = plot.col)
+lines(c(1, 8), rep(plot.base, 2), col = plot.col)
+lines(c(9, 18), rep(plot.base, 2), col = plot.col)
+lines(c(19, 26), rep(plot.base, 2), col = plot.col)
 
 # The length of the three horizontal bars that measure the width of our broods:
 brood_widths <- c(7, 9, 7)
@@ -274,7 +275,8 @@ mu_guesses <- c(4.1, 13, 23)
 # To guess the weights, we make the crude assumption that the height of the peak
 # of a brood relative to the others is roughly propoprtional to the percentage
 # of the population that finds itself in this brood:
-w_guesses <- c(0.032 - 0.005, 0.16 - 0.005, 0.054 - 0.005) %>% sum_to_one
+w_guesses <- c(4.6 - plot.base, 21.3 - plot.base, 8 - plot.base) %>%
+  sum_to_one
 ```
 
 

@@ -3,6 +3,7 @@
 \docType{package}
 \name{GAI}
 \alias{GAI}
+\alias{GAI-package}
 \title{GAI: Generalised Abundance Index fitting for seasonal invertibrates, with
 covariates}
 \description{
