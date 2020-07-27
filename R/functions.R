@@ -1418,7 +1418,11 @@ design_matrix <- function(DF, covar_formula){
   }
   
   # Make the design matrix for the whole data set:
+  current_action <- options("na.action")
+  options(na.action = "na.pass")
   DM <- model.matrix(object = covar_formula, DF)
+  if (DM %>% is.na %>% any) stop("Covariate values cannot include NA")
+  options("na.action" = current_action)
   return(DM)
 }
 
@@ -1450,15 +1454,12 @@ is_time_varying <- function(DM, DF){
   
   for (s in unique(DF$site)){
     site_rows <- DF$site == s # find out which rows refer to this site
-    
     # find out if any covariate column has time-varying values:
     s_check <- DM[site_rows, ] %>% apply(2, unique) %>% lapply(length) %>%
       as.numeric %>% `>`(1) %>% any
     
     if (s_check){output <- TRUE; break}
   }
-  
-  if (is.na(DM) %>% any) stop("NA covariate values aren't allowed")
   
   return(output)
 }

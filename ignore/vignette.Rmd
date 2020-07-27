@@ -117,6 +117,7 @@ my_mixture_GAI <- fit_GAI(start = example_par,
                           dist_choice = "ZIP", options = my_options,
                           verbose = T, hessian = T)
 
+
 # Print the MLEs to show the model has fitted correctly:
 my_mixture_GAI$par
 
@@ -222,6 +223,38 @@ brood_specific_fit <- fit_GAI(start = brood_specific_start,
                               options = brood_specific_options)
 # Checking the MLEs:
 brood_specific_fit$par
+```
+
+It should be noted that the GAI package comes with no methods for interpolating 
+missing covaraite values. Because of this, any NA covariate values in data.frame
+objects passed to fit_GAI will cause an error to be outputted to the console. 
+The GAI package only supports 'spatial' covariates, that is, covariates whose 
+values vary only by site, and are identical for every single sampling occasion, 
+for a given site. Supplying time-varying covariates to fit_GAI will similarly
+lead to an error being thrown.
+
+```{R covErrors}
+example_NA <- example_time_varying <- example_data
+
+# Turn roughly 5% of our altitude data to NA values:
+indices <- example_NA$altitude %>% length %>% rbinom(size = 1, prob = 0.05)
+example_NA$altitude[indices %>% as.logical] <- NA
+
+# Turn our altitude data into a time-varying covariate by making it a function 
+# of the occasion:
+example_time_varying$altitude <- example_data$altitude * example_data$occasion
+
+# Trying to fit a covaraite model with these new data will throw the relevant
+# errors:
+error_fit <- try(fit_GAI(start = general_fit_start, DF = example_NA,
+                         a_choice = "mixture", dist_choice = "P",
+                         options = general_options, hessian = T))
+
+# Trying to fit with a time-varying formula: 
+error_fit <- try(fit_GAI(start = general_fit_start, DF = example_time_varying,
+                         a_choice = "mixture", dist_choice = "P",
+                         options = general_options, hessian = T))
+
 ```
 
 # Finding Starting Values
