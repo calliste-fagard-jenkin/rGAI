@@ -1269,10 +1269,12 @@ transform_starting_values <- function(starting_values, a_choice, dist_choice,
   # output  : A named vecotr of parameter values on the real scale.
   skeleton <- produce_skeleton(a_choice, dist_choice, options, DF)$skeleton
   
-  mu_guess <- starting_values[["mu"]]
-  sigma_guess <- starting_values[["sigma"]]
-  w_guess <- starting_values[["w"]]
   dist_guess <- starting_values[["dist.par"]]
+  sigma_guess <- starting_values[["sigma"]]
+  phi_guess <- starting_values[["phi"]]
+  mu_guess <- starting_values[["mu"]]
+  w_guess <- starting_values[["w"]]
+  
   
   # Add a default guess of 0 for each parameter value, and then relist the
   # the skeleton for convenience:
@@ -1282,6 +1284,7 @@ transform_starting_values <- function(starting_values, a_choice, dist_choice,
   # Add in the user guesses for "mu", "sigma", "w" and "dist.par" if they exist:
   if (!is.null(dist_guess))  output[["dist.par"]] <- dist_guess
   if (!is.null(sigma_guess))  output[["sigma"]] <- sigma_guess
+  if (!is.null(phi_guess))  output[["phi"]] <- phi_guess
   if (!is.null(mu_guess))  output[["mu"]] <- mu_guess
   if (!is.null(w_guess))  output[["w"]] <- w_guess
   
@@ -1296,6 +1299,8 @@ transform_starting_values <- function(starting_values, a_choice, dist_choice,
     output %<>% transform_values(base = "mu", skeleton = skeleton)
     output %<>% transform_values(base = "sigma", skeleton = skeleton)
     output %<>% transform_values(base = "w", skeleton = skeleton)
+    if (a_choice == "stopover" & phi_guess %>% is.null %>% `!`)
+      output[["phi"]] <- qlogis(phi_guess)
     
     if (dist_choice != "P"){
       if (starting_values[["dist.par"]] %>% is.null %>% `!`){

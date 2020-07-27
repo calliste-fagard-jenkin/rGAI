@@ -1,13 +1,11 @@
 ---
-title: "vignette"
+title: "GAI vignette"
 output: rmarkdown::html_vignette
-toc: true
 extra_dependencies: ["xcolor", "hyperref"]
 vignette: >
   %\VignetteIndexEntry{vignette}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
-  
 ---
 # Introduction to the GAI package
 
@@ -27,7 +25,7 @@ providing an example workflow on simulated data.
 In order to install the GAI package from source, the folder containing the
 source code must be downloaded from Github: https://github.com/calliste-fagard-jenkin/butterflyCode
 
-```{R loading, results = 'hide'}
+```{R loading, results = 'hide', warning = F}
 #install.packages('devtools')
 library(devtools, quietly = T)
 install_github("calliste-fagard-jenkin/GAI", quiet = T)
@@ -41,10 +39,9 @@ package, and examining its structure. These data consist of a simulation from
 a mixture model with three broods, across 50 sites and 26 occasions (one survey
 every week from April to September, inclusive, for a given year).
 
-```{R data}
+```{R data, fig.width = 7, fig.height = 5}
 # For the pipe operator:
 library(magrittr)
-
 data("example_data")
 head(example_data)
 
@@ -84,9 +81,9 @@ As described by
 comprised of two parts. Firstly, the seasonal flight pattern  describes the
 density of arrivals at each occasion in the study, and can be modelled either by 
 a stopover model \textcolor{red}{cite Matechou et al 2014}, a spline, or an
-n-component mixture model. The choice of seasonal flight pattern can be specified
-using the options "stopover", "spline" and "mixture", for each of the above
-options, respectively.
+n-component mixture model. The choice of seasonal flight pattern can be
+specified using the options "stopover", "spline" and "mixture", for each of the
+above options, respectively.
 
 The second part of the GAI model describes the distribution of observed counts
 of individuals at each site on a given occasion. The package includes Poisson
@@ -160,7 +157,8 @@ try({my_mixture_GAI <- fit_GAI(start = example_par[1:3], DF = example_data,
 # Including Covariates
 
 Models using 'mixture' and 'stopover' seasonal flight patterns are able to
-include covoariates on the values of the means, disperisions and weights for their normal distribution components.
+include covoariates on the values of the means, disperisions and weights for
+their normal distribution components.
 
 Covariates can be included either as a general formula, which will apply to 
 all broods, or be specified individually for each brood. Covariates for the
@@ -271,7 +269,7 @@ produce good starting values. To remedy this, the transform_starting_values
 function can be used to transform parameter guesses on the 'real world' scale to 
 the link scale.
 
-```{R transform1}
+```{R transform1, fig.width = 7, fig.height = 5}
 # Let's produce a slightly 'annotated' version of the plot of observed counts
 # we had before. We'll add in some lines where we think the mean brood arrival
 # times are, and add in horizontal lines to try to estimate thw standard 
@@ -314,7 +312,8 @@ w_guesses <- c(4.6 - plot.base, 21.3 - plot.base, 8 - plot.base) %>%
 
 
 Let's consider our brood_specific_fit once more, but using the 
-transform_starting_values function to obtain better starting values, without knowing the distribution our data came from. The transform_starting_values 
+transform_starting_values function to obtain better starting values, without
+knowing the distribution our data came from. The transform_starting_values 
 function will assume that 0 is a reasonable starting value for all covariate
 parameters and spline parameters, which usually leads to numerically sound
 estimation of the MLEs. However, if covariates aren't normalised, and have 
@@ -392,7 +391,8 @@ refitting_bootstrap <- bootstrap(general_fit, R = 10, refit = T, parallel = T,
 
 The bootstraps output contains raw values from each iteration of the estimated
 parameter values, the estimated site totals (site superpopulations) for each 
-site, and the average estimated site totals. The $1 - \alpha$ confidence intervals are available in the \$par, \$sites and \$index elements of the
+site, and the average estimated site totals. The $1 - \alpha$ confidence
+intervals are available in the \$par, \$sites and \$index elements of the
 bootstrap output for the parameters, individual site totals and average site 
 total, respectively:
 
@@ -445,7 +445,7 @@ If custom colours are to be used by the plotting function, the colour palette
 can be passed to the 'plot' function as a vector of integers or character colour 
 hex values using the 'colours' argument.
 
-```{R plotting}
+```{R plotting, fig.width = 7, fig.height = 5}
 colours <- c("#33FFF9", "#33A8FF", "#4233FF")
 
 # The default behaviour will use quantiles = c(0.05, 0.5, 0.95), and therefore 

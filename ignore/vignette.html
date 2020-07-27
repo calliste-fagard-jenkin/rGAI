@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+
+<title>GAI vignette</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#header {
+text-align: center;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">GAI vignette</h1>
+
+
+
+<div id="introduction-to-the-gai-package" class="section level1">
+<h1>Introduction to the GAI package</h1>
+<p>The GAI package is an extension of functionality provided by . The package provides a user interface for calculating a Generalised Abundance Index (GAI) for seasonal invertebrates, with multiple options for covariate inclusion, seasonal flight patterns and observed count distributions, along with the ability to conduct bootstraps to obtain measures uncertainty for estimated parameter and GAI values.</p>
+<p>This vignette will illustrate the features available within the package by providing an example workflow on simulated data.</p>
+</div>
+<div id="installing-the-package-from-source" class="section level1">
+<h1>Installing the Package from Source</h1>
+<p>In order to install the GAI package from source, the folder containing the source code must be downloaded from Github: <a href="https://github.com/calliste-fagard-jenkin/butterflyCode" class="uri">https://github.com/calliste-fagard-jenkin/butterflyCode</a></p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="co">#install.packages(&#39;devtools&#39;)</span></a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw">library</span>(devtools, <span class="dt">quietly =</span> T)</a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="kw">install_github</span>(<span class="st">&quot;calliste-fagard-jenkin/GAI&quot;</span>, <span class="dt">quiet =</span> T)</a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="kw">library</span>(GAI)</a></code></pre></div>
+</div>
+<div id="preparing-data-for-the-gai-package" class="section level1">
+<h1>Preparing Data for the GAI Package</h1>
+<p>Let us begin by loading an example data set which is provided within the GAI package, and examining its structure. These data consist of a simulation from a mixture model with three broods, across 50 sites and 26 occasions (one survey every week from April to September, inclusive, for a given year).</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1"><span class="co"># For the pipe operator:</span></a>
+<a class="sourceLine" id="cb2-2" title="2"><span class="kw">library</span>(magrittr)</a>
+<a class="sourceLine" id="cb2-3" title="3"><span class="kw">data</span>(<span class="st">&quot;example_data&quot;</span>)</a>
+<a class="sourceLine" id="cb2-4" title="4"><span class="kw">head</span>(example_data)</a></code></pre></div>
+<pre><code>##   site occasion count    altitude
+## 1    1        1     0  1.75733303
+## 2    2        1    NA -1.62156062
+## 3    3        1     0  1.32982955
+## 4    4        1     2 -1.20585806
+## 5    5        1     1  1.02254356
+## 6    6        1    NA -0.00204768</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1"><span class="co"># The GAI package comes with a handy function to convert data.frame data to </span></a>
+<a class="sourceLine" id="cb4-2" title="2"><span class="co"># a matrix of counts, to facilitate plotting. This function also checks if </span></a>
+<a class="sourceLine" id="cb4-3" title="3"><span class="co"># the survey has any missing occasions, so can be a useful way of sanitising</span></a>
+<a class="sourceLine" id="cb4-4" title="4"><span class="co"># a new dataset:</span></a>
+<a class="sourceLine" id="cb4-5" title="5">test_data &lt;-<span class="st"> </span><span class="kw">extract_counts</span>(example_data, <span class="dt">returnDF =</span> F)</a>
+<a class="sourceLine" id="cb4-6" title="6"></a>
+<a class="sourceLine" id="cb4-7" title="7"><span class="co"># Plot the observed densities, averaged across all sites:</span></a>
+<a class="sourceLine" id="cb4-8" title="8">test_data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">apply</span>(<span class="dv">2</span>, mean, <span class="dt">na.rm =</span> T) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb4-9" title="9"><span class="st">  </span><span class="kw">plot</span>(<span class="dt">x =</span> <span class="dv">1</span><span class="op">:</span><span class="kw">ncol</span>(test_data), <span class="dt">type =</span> <span class="st">&#39;l&#39;</span>, <span class="dt">col =</span> <span class="kw">rgb</span>(<span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="fl">0.6</span>), <span class="dt">lty =</span> <span class="dv">2</span>, </a>
+<a class="sourceLine" id="cb4-10" title="10">       <span class="dt">xlab =</span> <span class="st">&#39;Week&#39;</span>, <span class="dt">ylab =</span> <span class="st">&#39;Observed count, averaged across all sites&#39;</span>)</a></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>Each row in our input data.frame is used to store the result of the observed count at a given site on a given occasion. We assume that the interval between each occasion is fixed, and that sites are independent. The ‘site’, ‘occasion’ and ‘count’ columns must be given these precise names to allow the GAI package to recognise them. Missing observations can be listed with an NA entry.</p>
+<p>Sites and occasions can have either character or numeric names. Because of this, the GAI package will assume occasions occured in the order they first appear in the data frame. If no observations were collected for any sites on a given occasion, this occasion should still be included in the data.frame with NA entries for each site.</p>
+<p>The fourth column ‘altitude’ represents a covariate (with standardised values), and will be used to illustrate how covariates can be included into different models available within the package.</p>
+</div>
+<div id="fitting-a-simple-model" class="section level1">
+<h1>Fitting a Simple Model</h1>
+<p>As described by , the Generalised Abundance Index is a model comprised of two parts. Firstly, the seasonal flight pattern describes the density of arrivals at each occasion in the study, and can be modelled either by a stopover model , a spline, or an n-component mixture model. The choice of seasonal flight pattern can be specified using the options “stopover”, “spline” and “mixture”, for each of the above options, respectively.</p>
+<p>The second part of the GAI model describes the distribution of observed counts of individuals at each site on a given occasion. The package includes Poisson (“P”), Negative Binomial (“NB”) and Zero-Inflated Poisson (“ZIP”) as options for this distribution.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1"><span class="co"># We can load the true parameter values of the simulated data set from the </span></a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="co"># GAI package, to more easily find starting parameter values for this example:</span></a>
+<a class="sourceLine" id="cb5-3" title="3"><span class="kw">data</span>(<span class="st">&quot;example_par&quot;</span>)</a>
+<a class="sourceLine" id="cb5-4" title="4"></a>
+<a class="sourceLine" id="cb5-5" title="5"><span class="co"># The &#39;options&#39; argument of the fit_GAI function is how we specify the </span></a>
+<a class="sourceLine" id="cb5-6" title="6"><span class="co"># specific model we&#39;d like the package to fit. For mixture and stopover models</span></a>
+<a class="sourceLine" id="cb5-7" title="7"><span class="co"># we can specify if each brood should be modelled to have the same standard </span></a>
+<a class="sourceLine" id="cb5-8" title="8"><span class="co"># deviation, and the number of broods our model should use:</span></a>
+<a class="sourceLine" id="cb5-9" title="9">my_options &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">B =</span> <span class="dv">3</span>, <span class="dt">shared_sigma =</span> T)</a>
+<a class="sourceLine" id="cb5-10" title="10"></a>
+<a class="sourceLine" id="cb5-11" title="11"><span class="co"># In the case of a spline-based model, the package needs to know the number of</span></a>
+<a class="sourceLine" id="cb5-12" title="12"><span class="co"># degrees of freedom and the degree of the splines we want to use:</span></a>
+<a class="sourceLine" id="cb5-13" title="13">options_for_splines &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">df =</span> <span class="dv">20</span>, <span class="dt">degree =</span> <span class="dv">3</span>)</a>
+<a class="sourceLine" id="cb5-14" title="14"></a>
+<a class="sourceLine" id="cb5-15" title="15"><span class="co"># The fit_GAI function includes a &#39;verbose&#39;  option, which prints the value of</span></a>
+<a class="sourceLine" id="cb5-16" title="16"><span class="co"># the negative log-likelihood at each iteration, and also the option to </span></a>
+<a class="sourceLine" id="cb5-17" title="17"><span class="co"># estimate the hessian matrix of the parameters, to obtain their </span></a>
+<a class="sourceLine" id="cb5-18" title="18"><span class="co"># variance covariance matrix:</span></a>
+<a class="sourceLine" id="cb5-19" title="19">my_mixture_GAI &lt;-<span class="st"> </span><span class="kw">fit_GAI</span>(<span class="dt">start =</span> example_par,</a>
+<a class="sourceLine" id="cb5-20" title="20">                          <span class="dt">DF =</span> example_data, <span class="dt">a_choice =</span> <span class="st">&quot;mixture&quot;</span>,</a>
+<a class="sourceLine" id="cb5-21" title="21">                          <span class="dt">dist_choice =</span> <span class="st">&quot;ZIP&quot;</span>, <span class="dt">options =</span> my_options,</a>
+<a class="sourceLine" id="cb5-22" title="22">                          <span class="dt">verbose =</span> T, <span class="dt">hessian =</span> T)</a></code></pre></div>
+<pre><code>## negative log likelihood for iteration 1 is 2173.199 
+## negative log likelihood for iteration 2 is 1949.38 
+## negative log likelihood for iteration 3 is 1949.361 
+## final negative log likelihood value is 1949.361 
+## performing final iteration to find hessian</code></pre>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1"><span class="co"># Print the MLEs to show the model has fitted correctly:</span></a>
+<a class="sourceLine" id="cb7-2" title="2">my_mixture_GAI<span class="op">$</span>par</a></code></pre></div>
+<pre><code>##        mu1        mu2        mu3      sigma         w1         w2 
+##  1.4337224  2.2419141  2.1685615  0.6186303 -1.8263103  0.8410986 
+##   dist.par 
+##  1.0681543</code></pre>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1"><span class="co"># Not forgetting to add degrees of freedom and degree of splines information,</span></a>
+<a class="sourceLine" id="cb9-2" title="2"><span class="co"># and noting that specifying the number of broods will no longer have an </span></a>
+<a class="sourceLine" id="cb9-3" title="3"><span class="co"># effect:</span></a>
+<a class="sourceLine" id="cb9-4" title="4">my_spline_GAI &lt;-<span class="st"> </span><span class="kw">fit_GAI</span>(<span class="dt">start =</span> <span class="kw">rep</span>(<span class="dv">0</span>, <span class="dv">20</span>), <span class="dt">DF =</span> example_data,</a>
+<a class="sourceLine" id="cb9-5" title="5">                         <span class="dt">a_choice =</span> <span class="st">&quot;splines&quot;</span>, <span class="dt">dist_choice =</span> <span class="st">&quot;P&quot;</span>,</a>
+<a class="sourceLine" id="cb9-6" title="6">                         <span class="dt">options =</span> options_for_splines, <span class="dt">verbose =</span> T,</a>
+<a class="sourceLine" id="cb9-7" title="7">                         <span class="dt">hessian =</span> T)</a>
+<a class="sourceLine" id="cb9-8" title="8"></a>
+<a class="sourceLine" id="cb9-9" title="9"><span class="co"># Print the MLEs to show the model has fitted correctly:</span></a>
+<a class="sourceLine" id="cb9-10" title="10">my_spline_GAI<span class="op">$</span>par</a></code></pre></div>
+<pre><code>##  spline_par1  spline_par2  spline_par3  spline_par4  spline_par5 
+##  -1.34995126  -1.82700039   0.94795141   0.26109310  -0.22835459 
+##  spline_par6  spline_par7  spline_par8  spline_par9 spline_par10 
+##  -1.04449485  -0.73915017  -0.26439482  -0.07875896   2.14861892 
+## spline_par11 spline_par12 spline_par13 spline_par14 spline_par15 
+##   1.62543926   0.59656922   0.07939401  -0.31428252  -0.66031778 
+## spline_par16 spline_par17 spline_par18 spline_par19 spline_par20 
+##   1.03393481   0.19727176   0.60729954  -0.82577107  -0.33537248</code></pre>
+<p>If an incorrect number of starting values is given to fit_GAI, an error will be raised, and a printout will indicate the parameter starting values that fit_GAI expects. The order of these starting values is important, and matches the order of the output fit_GAI produces in this scenario. This feature should be used to avoid making mistakes when unsure of how many parameters a model specification will require. Confusingly, NA values are not allowed as starting values, but functionality exists within the code to aid in finding reasonable starting values, which is outlined later in this vignette.</p>
+<p>It’s worth noting that multiple numerical methods exist for finding the MLEs of the GAI model. The package uses the ‘optim’ function which makes use of the “Nelder-Mead” algorithm by default, but this can be changed to other options, such as “BFGS” or “SANN” (simulated annealing) by passing in method = “SANN” (for example) as an argument to fit_GAI.</p>
+<p></p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1"><span class="co"># We cut off some of our starting parameters on purpose, to cause the exception</span></a>
+<a class="sourceLine" id="cb11-2" title="2"><span class="co"># to be raised:</span></a>
+<a class="sourceLine" id="cb11-3" title="3"><span class="kw">try</span>({my_mixture_GAI &lt;-<span class="st"> </span><span class="kw">fit_GAI</span>(<span class="dt">start =</span> example_par[<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>], <span class="dt">DF =</span> example_data,</a>
+<a class="sourceLine" id="cb11-4" title="4">                               <span class="dt">a_choice =</span> <span class="st">&quot;mixture&quot;</span>, <span class="dt">dist_choice =</span> <span class="st">&quot;ZIP&quot;</span>,</a>
+<a class="sourceLine" id="cb11-5" title="5">                               <span class="dt">options =</span> my_options, <span class="dt">verbose =</span> T,</a>
+<a class="sourceLine" id="cb11-6" title="6">                               <span class="dt">hessian =</span> T)}, <span class="dt">silent =</span> T)</a></code></pre></div>
+<pre><code>## [1] &quot;Incorrect number of parameters supplied. Please submit something similar to:&quot;
+##      mu1      mu2      mu3    sigma       w1       w2 dist.par 
+##       NA       NA       NA       NA       NA       NA       NA</code></pre>
+</div>
+<div id="including-covariates" class="section level1">
+<h1>Including Covariates</h1>
+<p>Models using ‘mixture’ and ‘stopover’ seasonal flight patterns are able to include covoariates on the values of the means, disperisions and weights for their normal distribution components.</p>
+<p>Covariates can be included either as a general formula, which will apply to all broods, or be specified individually for each brood. Covariates for the normal components should be specified by adding a ‘mu_formula’, ‘sigma_formula’, or ‘w_formula’ to the ‘options argument’, for the mean, standard deviation, and for weights of each component, respectively.</p>
+<p>When specifying covariate formulae one by one for each brood, we have the option of giving completely different formulae for each brood, or using NULL to specify that no covariates should be fitted for a given brood. Because of this flexibility, it is good practice to ensure the list of formulae always has the same number of elements as the number of broods specified. If more formulae are specified than there are broods, these extra formulae will simply be ignored.</p>
+<p></p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" title="1"><span class="co"># To specify a formula which will be identical for each brood, </span></a>
+<a class="sourceLine" id="cb13-2" title="2">general_options &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">B =</span> <span class="dv">3</span>, <span class="dt">shared_sigma =</span> T,</a>
+<a class="sourceLine" id="cb13-3" title="3">                        <span class="dt">mu_formula =</span> <span class="kw">formula</span>(<span class="op">~</span>altitude))</a>
+<a class="sourceLine" id="cb13-4" title="4"></a>
+<a class="sourceLine" id="cb13-5" title="5"><span class="co"># To be able to fit brood-specific covariate options for the standard deviations</span></a>
+<a class="sourceLine" id="cb13-6" title="6"><span class="co"># we require the standard deviation to be estimated individually for each brood,</span></a>
+<a class="sourceLine" id="cb13-7" title="7"><span class="co"># and so we set shared_sigma = F.</span></a>
+<a class="sourceLine" id="cb13-8" title="8">brood_specific_options &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">B =</span> <span class="dv">3</span>, <span class="dt">shared_sigma =</span> F, </a>
+<a class="sourceLine" id="cb13-9" title="9">                               <span class="dt">sigma_formula =</span></a>
+<a class="sourceLine" id="cb13-10" title="10">                                 <span class="kw">list</span>(<span class="ot">NULL</span>,                     <span class="co"># for brood 1</span></a>
+<a class="sourceLine" id="cb13-11" title="11">                                      <span class="kw">formula</span>(<span class="op">~</span>altitude),       <span class="co"># for brood 2</span></a>
+<a class="sourceLine" id="cb13-12" title="12">                                      <span class="kw">formula</span>(<span class="op">~</span><span class="kw">I</span>(altitude<span class="op">^</span><span class="dv">2</span>)))) <span class="co"># for brood 3</span></a>
+<a class="sourceLine" id="cb13-13" title="13"></a>
+<a class="sourceLine" id="cb13-14" title="14"><span class="co"># The distributional parameter we had previously for the ZIP (Zero-Inflated </span></a>
+<a class="sourceLine" id="cb13-15" title="15"><span class="co"># Poisson) distribution will disappear now that we&#39;re fitting a simple </span></a>
+<a class="sourceLine" id="cb13-16" title="16"><span class="co"># Poisson. However, we are also adding a covariate formula which will require</span></a>
+<a class="sourceLine" id="cb13-17" title="17"><span class="co"># one additional parameter. We&#39;ll give this a starting value of 0, which </span></a>
+<a class="sourceLine" id="cb13-18" title="18"><span class="co"># reflects an a priori belief that the covariate has no effect. To do this, </span></a>
+<a class="sourceLine" id="cb13-19" title="19"><span class="co"># we simply replace the final value of example par with 0, since distributional</span></a>
+<a class="sourceLine" id="cb13-20" title="20"><span class="co"># parameters are placed at the end of the parameter vector, and covariate are </span></a>
+<a class="sourceLine" id="cb13-21" title="21"><span class="co"># placed after these, when they are present:</span></a>
+<a class="sourceLine" id="cb13-22" title="22">general_fit_start &lt;-<span class="st"> </span>example_par[<span class="dv">1</span><span class="op">:</span>(<span class="kw">length</span>(example_par) <span class="op">-</span><span class="st"> </span><span class="dv">1</span>)] <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">c</span>(<span class="dv">0</span>)</a>
+<a class="sourceLine" id="cb13-23" title="23"></a>
+<a class="sourceLine" id="cb13-24" title="24"><span class="co"># Having specified our covariate formulae, we can fit the model in exactly the</span></a>
+<a class="sourceLine" id="cb13-25" title="25"><span class="co"># same way as before:</span></a>
+<a class="sourceLine" id="cb13-26" title="26">general_fit &lt;-<span class="st"> </span><span class="kw">fit_GAI</span>(<span class="dt">start =</span> general_fit_start, <span class="dt">DF =</span> example_data,</a>
+<a class="sourceLine" id="cb13-27" title="27">                       <span class="dt">a_choice =</span> <span class="st">&quot;mixture&quot;</span>, <span class="dt">dist_choice =</span> <span class="st">&quot;P&quot;</span>,</a>
+<a class="sourceLine" id="cb13-28" title="28">                       <span class="dt">options =</span> general_options, <span class="dt">hessian =</span> T)</a>
+<a class="sourceLine" id="cb13-29" title="29"></a>
+<a class="sourceLine" id="cb13-30" title="30"><span class="co"># Because these covariate data are dummies, we expect the fitted value to be</span></a>
+<a class="sourceLine" id="cb13-31" title="31"><span class="co"># very close to zero:</span></a>
+<a class="sourceLine" id="cb13-32" title="32">general_fit<span class="op">$</span>par</a></code></pre></div>
+<pre><code>##           mu1           mu2           mu3         sigma            w1 
+##  1.429915e+00  2.243347e+00  2.173237e+00  6.004348e-01 -1.798173e+00 
+##            w2        mu.cov 
+##  8.709842e-01  8.863108e-05</code></pre>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" title="1"><span class="co"># To make the starting values for the new model, we steal the known values from </span></a>
+<a class="sourceLine" id="cb15-2" title="2"><span class="co"># the example_par vector (using the shared standard deviation across broods as</span></a>
+<a class="sourceLine" id="cb15-3" title="3"><span class="co"># the estimate for each brood individually). We then also add two 0s as our </span></a>
+<a class="sourceLine" id="cb15-4" title="4"><span class="co"># starting values for the covariate parameters</span></a>
+<a class="sourceLine" id="cb15-5" title="5">brood_specific_start =<span class="st"> </span><span class="kw">c</span>(example_par[<span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="kw">rep</span>(<span class="dv">4</span>, <span class="dv">3</span>), <span class="dv">5</span><span class="op">:</span><span class="dv">6</span>)], <span class="kw">rep</span>(<span class="dv">0</span>, <span class="dv">2</span>))</a>
+<a class="sourceLine" id="cb15-6" title="6">brood_specific_fit &lt;-<span class="st"> </span><span class="kw">fit_GAI</span>(<span class="dt">start =</span> brood_specific_start,</a>
+<a class="sourceLine" id="cb15-7" title="7">                              <span class="dt">DF =</span> example_data, <span class="dt">a_choice =</span> <span class="st">&quot;mixture&quot;</span>,</a>
+<a class="sourceLine" id="cb15-8" title="8">                              <span class="dt">dist_choice =</span> <span class="st">&quot;P&quot;</span>, <span class="dt">hessian =</span> T,</a>
+<a class="sourceLine" id="cb15-9" title="9">                              <span class="dt">options =</span> brood_specific_options)</a>
+<a class="sourceLine" id="cb15-10" title="10"><span class="co"># Checking the MLEs:</span></a>
+<a class="sourceLine" id="cb15-11" title="11">brood_specific_fit<span class="op">$</span>par</a></code></pre></div>
+<pre><code>##          mu1          mu2          mu3       sigma1       sigma2 
+##  1.436901645  2.237869583  2.174713412  0.626631568  0.576270591 
+##       sigma3           w1           w2   sigma2.cov   sigma3.cov 
+##  0.659146988 -1.796768365  0.857774072 -0.005153376  0.016057039</code></pre>
+<p>It should be noted that the GAI package comes with no methods for interpolating missing covaraite values. Because of this, any NA covariate values in data.frame objects passed to fit_GAI will cause an error to be outputted to the console. The GAI package only supports ‘spatial’ covariates, that is, covariates whose values vary only by site, and are identical for every single sampling occasion, for a given site. Supplying time-varying covariates to fit_GAI will similarly lead to an error being thrown.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" title="1">example_NA &lt;-<span class="st"> </span>example_time_varying &lt;-<span class="st"> </span>example_data</a>
+<a class="sourceLine" id="cb17-2" title="2"></a>
+<a class="sourceLine" id="cb17-3" title="3"><span class="co"># Turn roughly 5% of our altitude data to NA values:</span></a>
+<a class="sourceLine" id="cb17-4" title="4">indices &lt;-<span class="st"> </span>example_NA<span class="op">$</span>altitude <span class="op">%&gt;%</span><span class="st"> </span>length <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">rbinom</span>(<span class="dt">size =</span> <span class="dv">1</span>, <span class="dt">prob =</span> <span class="fl">0.05</span>)</a>
+<a class="sourceLine" id="cb17-5" title="5">example_NA<span class="op">$</span>altitude[indices <span class="op">%&gt;%</span><span class="st"> </span>as.logical] &lt;-<span class="st"> </span><span class="ot">NA</span></a>
+<a class="sourceLine" id="cb17-6" title="6"></a>
+<a class="sourceLine" id="cb17-7" title="7"><span class="co"># Turn our altitude data into a time-varying covariate by making it a function </span></a>
+<a class="sourceLine" id="cb17-8" title="8"><span class="co"># of the occasion:</span></a>
+<a class="sourceLine" id="cb17-9" title="9">example_time_varying<span class="op">$</span>altitude &lt;-<span class="st"> </span>example_data<span class="op">$</span>altitude <span class="op">*</span><span class="st"> </span>example_data<span class="op">$</span>occasion</a>
+<a class="sourceLine" id="cb17-10" title="10"></a>
+<a class="sourceLine" id="cb17-11" title="11"><span class="co"># Trying to fit a covaraite model with these new data will throw the relevant</span></a>
+<a class="sourceLine" id="cb17-12" title="12"><span class="co"># errors:</span></a>
+<a class="sourceLine" id="cb17-13" title="13">error_fit &lt;-<span class="st"> </span><span class="kw">try</span>(<span class="kw">fit_GAI</span>(<span class="dt">start =</span> general_fit_start, <span class="dt">DF =</span> example_NA,</a>
+<a class="sourceLine" id="cb17-14" title="14">                         <span class="dt">a_choice =</span> <span class="st">&quot;mixture&quot;</span>, <span class="dt">dist_choice =</span> <span class="st">&quot;P&quot;</span>,</a>
+<a class="sourceLine" id="cb17-15" title="15">                         <span class="dt">options =</span> general_options, <span class="dt">hessian =</span> T))</a></code></pre></div>
+<pre><code>## Error in design_matrix(DF, formulas) : Covariate values cannot include NA</code></pre>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" title="1"><span class="co"># Trying to fit with a time-varying formula: </span></a>
+<a class="sourceLine" id="cb19-2" title="2">error_fit &lt;-<span class="st"> </span><span class="kw">try</span>(<span class="kw">fit_GAI</span>(<span class="dt">start =</span> general_fit_start, <span class="dt">DF =</span> example_time_varying,</a>
+<a class="sourceLine" id="cb19-3" title="3">                         <span class="dt">a_choice =</span> <span class="st">&quot;mixture&quot;</span>, <span class="dt">dist_choice =</span> <span class="st">&quot;P&quot;</span>,</a>
+<a class="sourceLine" id="cb19-4" title="4">                         <span class="dt">options =</span> general_options, <span class="dt">hessian =</span> T))</a></code></pre></div>
+<pre><code>## Error in get_cov_skeleton_and_DM(&quot;mu&quot;, options, DF, B, skeleton, DMs) : 
+##   Covariate values must vary by site only, and not through time</code></pre>
+</div>
+<div id="finding-starting-values" class="section level1">
+<h1>Finding Starting Values</h1>
+<p>To aid numerical routines in estimating the maximum likelihood estimates of parameter values, link functions are used to ensure that parameter guesses can always be made on the entire real line. Because many broods can be used, the GAI package uses custom link functions for mean arrival times and dispersions, which are slightly more complicated that the typical log and logistic link functions.</p>
+<p>The fit_GAI function expects all starting values to be given on this link scale, which can make using our intuition or knowledge of our data very difficult to produce good starting values. To remedy this, the transform_starting_values function can be used to transform parameter guesses on the ‘real world’ scale to the link scale.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb21-1" title="1"><span class="co"># Let&#39;s produce a slightly &#39;annotated&#39; version of the plot of observed counts</span></a>
+<a class="sourceLine" id="cb21-2" title="2"><span class="co"># we had before. We&#39;ll add in some lines where we think the mean brood arrival</span></a>
+<a class="sourceLine" id="cb21-3" title="3"><span class="co"># times are, and add in horizontal lines to try to estimate thw standard </span></a>
+<a class="sourceLine" id="cb21-4" title="4"><span class="co"># deviation of each brood&#39;s arrivals:</span></a>
+<a class="sourceLine" id="cb21-5" title="5">test_data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">apply</span>(<span class="dv">2</span>, mean, <span class="dt">na.rm =</span> T) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb21-6" title="6"><span class="st">  </span><span class="kw">plot</span>(<span class="dt">x =</span> <span class="dv">1</span><span class="op">:</span><span class="kw">ncol</span>(test_data), <span class="dt">type =</span> <span class="st">&#39;l&#39;</span>, <span class="dt">col =</span> <span class="kw">rgb</span>(<span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="fl">0.6</span>), <span class="dt">lty =</span> <span class="dv">2</span>, </a>
+<a class="sourceLine" id="cb21-7" title="7">       <span class="dt">xlab =</span> <span class="st">&#39;Week&#39;</span>, <span class="dt">ylab =</span> <span class="st">&#39;Observed count, averaged across all sites&#39;</span>)</a>
+<a class="sourceLine" id="cb21-8" title="8"></a>
+<a class="sourceLine" id="cb21-9" title="9">plot.col &lt;-<span class="st"> &#39;blue&#39;</span></a>
+<a class="sourceLine" id="cb21-10" title="10">plot.base &lt;-<span class="st"> </span><span class="dv">1</span></a>
+<a class="sourceLine" id="cb21-11" title="11"></a>
+<a class="sourceLine" id="cb21-12" title="12"><span class="co"># Mean brood arrival lines:</span></a>
+<a class="sourceLine" id="cb21-13" title="13"><span class="kw">lines</span>(<span class="kw">rep</span>(<span class="fl">4.1</span>, <span class="dv">2</span>), <span class="kw">c</span>(plot.base, <span class="fl">4.6</span>), <span class="dt">col =</span> plot.col)</a>
+<a class="sourceLine" id="cb21-14" title="14"><span class="kw">lines</span>(<span class="kw">rep</span>(<span class="fl">13.0</span>, <span class="dv">2</span>), <span class="kw">c</span>(plot.base, <span class="fl">21.3</span>), <span class="dt">col =</span> plot.col)</a>
+<a class="sourceLine" id="cb21-15" title="15"><span class="kw">lines</span>(<span class="kw">rep</span>(<span class="fl">23.0</span>, <span class="dv">2</span>), <span class="kw">c</span>(plot.base, <span class="dv">8</span>), <span class="dt">col =</span> plot.col) </a>
+<a class="sourceLine" id="cb21-16" title="16"></a>
+<a class="sourceLine" id="cb21-17" title="17"><span class="co"># Mean brood dispersion lines:</span></a>
+<a class="sourceLine" id="cb21-18" title="18"><span class="kw">lines</span>(<span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">8</span>), <span class="kw">rep</span>(plot.base, <span class="dv">2</span>), <span class="dt">col =</span> plot.col)</a>
+<a class="sourceLine" id="cb21-19" title="19"><span class="kw">lines</span>(<span class="kw">c</span>(<span class="dv">9</span>, <span class="dv">18</span>), <span class="kw">rep</span>(plot.base, <span class="dv">2</span>), <span class="dt">col =</span> plot.col)</a>
+<a class="sourceLine" id="cb21-20" title="20"><span class="kw">lines</span>(<span class="kw">c</span>(<span class="dv">19</span>, <span class="dv">26</span>), <span class="kw">rep</span>(plot.base, <span class="dv">2</span>), <span class="dt">col =</span> plot.col)</a></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb22-1" title="1"><span class="co"># The length of the three horizontal bars that measure the width of our broods:</span></a>
+<a class="sourceLine" id="cb22-2" title="2">brood_widths &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">7</span>, <span class="dv">9</span>, <span class="dv">7</span>)</a>
+<a class="sourceLine" id="cb22-3" title="3"></a>
+<a class="sourceLine" id="cb22-4" title="4"><span class="co"># Using a very rough rule of thumb that 95% of data in a normal distribution are</span></a>
+<a class="sourceLine" id="cb22-5" title="5"><span class="co"># found within 1.96 standard deviations from the means, we use the half width of</span></a>
+<a class="sourceLine" id="cb22-6" title="6"><span class="co"># our bars as an estimate of two sigma:</span></a>
+<a class="sourceLine" id="cb22-7" title="7">sigma_guesses &lt;-<span class="st"> </span>brood_widths <span class="op">/</span><span class="st"> </span><span class="dv">4</span></a>
+<a class="sourceLine" id="cb22-8" title="8"></a>
+<a class="sourceLine" id="cb22-9" title="9"><span class="co"># Our guesses for the means can simply be read off of the lines of code that</span></a>
+<a class="sourceLine" id="cb22-10" title="10"><span class="co"># produced the plot:</span></a>
+<a class="sourceLine" id="cb22-11" title="11">mu_guesses &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="fl">4.1</span>, <span class="dv">13</span>, <span class="dv">23</span>)</a>
+<a class="sourceLine" id="cb22-12" title="12"></a>
+<a class="sourceLine" id="cb22-13" title="13"><span class="co"># To guess the weights, we make the crude assumption that the height of the peak</span></a>
+<a class="sourceLine" id="cb22-14" title="14"><span class="co"># of a brood relative to the others is roughly propoprtional to the percentage</span></a>
+<a class="sourceLine" id="cb22-15" title="15"><span class="co"># of the population that finds itself in this brood:</span></a>
+<a class="sourceLine" id="cb22-16" title="16">w_guesses &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="fl">4.6</span> <span class="op">-</span><span class="st"> </span>plot.base, <span class="fl">21.3</span> <span class="op">-</span><span class="st"> </span>plot.base, <span class="dv">8</span> <span class="op">-</span><span class="st"> </span>plot.base) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb22-17" title="17"><span class="st">  </span>sum_to_one</a></code></pre></div>
+<p>Let’s consider our brood_specific_fit once more, but using the transform_starting_values function to obtain better starting values, without knowing the distribution our data came from. The transform_starting_values function will assume that 0 is a reasonable starting value for all covariate parameters and spline parameters, which usually leads to numerically sound estimation of the MLEs. However, if covariates aren’t normalised, and have large magnitude, this won’t be the case.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb23-1" title="1"><span class="co"># We create a list of starting values for parameters with the same structure </span></a>
+<a class="sourceLine" id="cb23-2" title="2"><span class="co"># as the options argument for fit_GAI:</span></a>
+<a class="sourceLine" id="cb23-3" title="3">my_starting_guesses &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">mu =</span> mu_guesses, <span class="dt">sigma =</span> sigma_guesses,</a>
+<a class="sourceLine" id="cb23-4" title="4">                            <span class="dt">w =</span> w_guesses)</a>
+<a class="sourceLine" id="cb23-5" title="5"></a>
+<a class="sourceLine" id="cb23-6" title="6"><span class="co"># Note: When a ZIP or NB model is used, we can also include a guess for the</span></a>
+<a class="sourceLine" id="cb23-7" title="7"><span class="co"># distributional parameter by adding in a dist.par entry to this list.</span></a>
+<a class="sourceLine" id="cb23-8" title="8"></a>
+<a class="sourceLine" id="cb23-9" title="9">new_brood_specific_start &lt;-</a>
+<a class="sourceLine" id="cb23-10" title="10"><span class="st">  </span><span class="kw">transform_starting_values</span>(<span class="dt">starting_values =</span> my_starting_guesses,</a>
+<a class="sourceLine" id="cb23-11" title="11">                            <span class="dt">a_choice =</span> <span class="st">&quot;mixture&quot;</span>, <span class="dt">dist_choice =</span> <span class="st">&quot;P&quot;</span>,</a>
+<a class="sourceLine" id="cb23-12" title="12">                            <span class="dt">options =</span> brood_specific_options,</a>
+<a class="sourceLine" id="cb23-13" title="13">                            <span class="co"># When covariates are included in the model, we </span></a>
+<a class="sourceLine" id="cb23-14" title="14">                            <span class="co"># need to include the data.frame of observations and</span></a>
+<a class="sourceLine" id="cb23-15" title="15">                            <span class="co"># covariate values, or the GAI package won&#39;t be able</span></a>
+<a class="sourceLine" id="cb23-16" title="16">                            <span class="co"># to figure out how many parameters the model </span></a>
+<a class="sourceLine" id="cb23-17" title="17">                            <span class="co"># specification requires. This can be omitted for</span></a>
+<a class="sourceLine" id="cb23-18" title="18">                            <span class="co"># non-covariate-including models</span></a>
+<a class="sourceLine" id="cb23-19" title="19">                            <span class="dt">DF =</span> example_data)</a>
+<a class="sourceLine" id="cb23-20" title="20"></a>
+<a class="sourceLine" id="cb23-21" title="21"><span class="co"># Let&#39;s print these new starting values, and refit the model:</span></a>
+<a class="sourceLine" id="cb23-22" title="22"><span class="kw">print</span>(new_brood_specific_start)</a></code></pre></div>
+<pre><code>##        mu1        mu2        mu3     sigma1     sigma2     sigma3 
+##  1.4109870  2.1860513  2.3025851  0.5596158  0.8109302  0.5596158 
+##         w1         w2 sigma2.cov sigma3.cov 
+## -2.0259529  1.0647107  0.0000000  0.0000000</code></pre>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb25-1" title="1">new_brood_specific_fit &lt;-<span class="st"> </span><span class="kw">fit_GAI</span>(<span class="dt">start =</span> new_brood_specific_start,</a>
+<a class="sourceLine" id="cb25-2" title="2">                                  <span class="dt">DF =</span> example_data, <span class="dt">a_choice =</span> <span class="st">&quot;mixture&quot;</span>,</a>
+<a class="sourceLine" id="cb25-3" title="3">                                  <span class="dt">dist_choice =</span> <span class="st">&quot;P&quot;</span>, <span class="dt">hessian =</span> T,</a>
+<a class="sourceLine" id="cb25-4" title="4">                                  <span class="dt">options =</span> brood_specific_options)</a>
+<a class="sourceLine" id="cb25-5" title="5"><span class="co"># Checking the MLEs:</span></a>
+<a class="sourceLine" id="cb25-6" title="6">new_brood_specific_fit<span class="op">$</span>par</a></code></pre></div>
+<pre><code>##          mu1          mu2          mu3       sigma1       sigma2 
+##  1.387075372  2.258130755  2.175573347  0.656753248  0.593682933 
+##       sigma3           w1           w2   sigma2.cov   sigma3.cov 
+##  0.600045449 -1.754451223  0.832255647  0.008549586  0.057708064</code></pre>
+</div>
+<div id="using-bootstraps" class="section level1">
+<h1>Using Bootstraps</h1>
+<p>Bootstraps in the GAI package are available in two options. The first option will resample sites (and their covariate values) from the observed data set, refitting the model each time it does this. It then extracts the bootstrap distribution of estimated site superpopulation sizes and parameter estimates to create a quantile method confidence interval for these. Because this type of bootstrap can be incredibly computionally expensive, functionality has been provided to do these calculations in parallel.</p>
+<p>The second method of bootstrapping involves resampling parameter values from their asymptotic multivariate normal distribution. This involves a numerical estimate of the Information matrix, and so is only available if a model has been fitted with the hessian = TRUE option in fit_GAI.</p>
+<p>The second type of bootstrap runs considerably faster, and is likely to be the only available option when many sites or covariates have been included, due to computational constrains. However, it should be noted that the first type typically produces intervals with coverage closer to the target, as it has no dependence on asymptotic properties or estimates of the Information matrix.</p>
+<p></p>
+<pre><code>## Loading required package: mvtnorm</code></pre>
+<pre><code>## Loading required package: parallel</code></pre>
+<p>The bootstraps output contains raw values from each iteration of the estimated parameter values, the estimated site totals (site superpopulations) for each site, and the average estimated site totals. The <span class="math inline">\(1 - \alpha\)</span> confidence intervals are available in the $par, $sites and $index elements of the bootstrap output for the parameters, individual site totals and average site total, respectively:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb29-1" title="1"><span class="co"># Taking a look at the results of the &#39;refit the model at each iteration&#39;</span></a>
+<a class="sourceLine" id="cb29-2" title="2"><span class="co"># style of bootstrap:</span></a>
+<a class="sourceLine" id="cb29-3" title="3">refitting_bootstrap<span class="op">$</span>par</a></code></pre></div>
+<pre><code>##            mu1      mu2      mu3     sigma        w1        w2
+## 0.5%  1.394150 2.222922 2.155289 0.5912313 -1.942107 0.7661520
+## 99.5% 1.457396 2.256992 2.190653 0.6254520 -1.705126 0.9965984
+##             mu.cov
+## 0.5%  -0.004754097
+## 99.5%  0.002288788</code></pre>
+</div>
+<div id="model-outputs" class="section level1">
+<h1>Model Outputs</h1>
+<p>\textcolor{red}{A section to be added explaining all of the objects the fit_GAI functions adds to its output, and how to use these to make plots, calculate the ‘actual’ Generalised Abundance Index (which I can easily add as an output itself), etc.}</p>
+<p>The GAI package comes with some simple functionality for summarising models, as well as more detailed outputs, which will be covered in more detail. The standard R ‘summary’ function can be used to see the model’s AIC, average estimate site total across all sites, and also the MLEs for all model parameters.</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb31-1" title="1"><span class="co"># Get a basic summary of the model outputs:</span></a>
+<a class="sourceLine" id="cb31-2" title="2"><span class="kw">summary</span>(my_mixture_GAI)</a></code></pre></div>
+<pre><code>## Maximum Likelihood Estimates (MLEs):
+## 
+##        mu1        mu2        mu3      sigma         w1         w2 
+##  1.4337224  2.2419141  2.1685615  0.6186303 -1.8263103  0.8410986 
+##   dist.par 
+##  1.0681543 
+## 
+## 
+## Akaike&#39;s Information Criterion (AIC): 3912.722 
+## 
+## Average estimated site super-population size: 150.2755</code></pre>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb33-1" title="1"><span class="co"># We can also obtain the AIC on its own using the standard AIC R function if </span></a>
+<a class="sourceLine" id="cb33-2" title="2"><span class="co"># we aren&#39;t interested in producing the rest of the summary:</span></a>
+<a class="sourceLine" id="cb33-3" title="3"><span class="kw">AIC</span>(my_mixture_GAI)</a></code></pre></div>
+<pre><code>## [1] 3912.722</code></pre>
+<p></p>
+</div>
+<div id="plotting-fitted-curves" class="section level1">
+<h1>Plotting Fitted Curves</h1>
+<p>The standard R plot function can be used to produce simple plots of the flight path of a fitted model. Optionally, either the flight path for each site can be included as a separate curve on the same graph, or a smooth can be plotted instead. This smooth averages through the different values observed at each site, at a set of quantiles that can be specified by the user. The default behaviour produces plots for the median density ocross sites for a given occasion, as well as the 5th and 95th quantiles for flight path density.</p>
+<p>To better compare the relative abundance at each site throughout the year, especially when covariates have been included in the model, it can be useful to scale the flight path curve of each site by the estimated site total. This can be done by setting scale_by_N = TRUE in the call to the ‘plot’ function.</p>
+<p>If custom colours are to be used by the plotting function, the colour palette can be passed to the ‘plot’ function as a vector of integers or character colour hex values using the ‘colours’ argument.</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb35-1" title="1">colours &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;#33FFF9&quot;</span>, <span class="st">&quot;#33A8FF&quot;</span>, <span class="st">&quot;#4233FF&quot;</span>)</a>
+<a class="sourceLine" id="cb35-2" title="2"></a>
+<a class="sourceLine" id="cb35-3" title="3"><span class="co"># The default behaviour will use quantiles = c(0.05, 0.5, 0.95), and therefore </span></a>
+<a class="sourceLine" id="cb35-4" title="4"><span class="co"># will not plot all sites individually. It will also use the standard R base</span></a>
+<a class="sourceLine" id="cb35-5" title="5"><span class="co"># graphics colours. The shiftt parameter can be used to shift the legends if </span></a>
+<a class="sourceLine" id="cb35-6" title="6"><span class="co"># the default value places them incorrectly:</span></a>
+<a class="sourceLine" id="cb35-7" title="7"><span class="kw">plot</span>(general_fit, <span class="dt">scale_by_N =</span> T, <span class="dt">colours =</span> colours,</a>
+<a class="sourceLine" id="cb35-8" title="8">     <span class="dt">quantiles =</span> <span class="kw">c</span>(<span class="fl">0.1</span>, <span class="fl">0.5</span>, <span class="fl">0.9</span>), <span class="dt">shift =</span> <span class="kw">c</span>(<span class="op">-</span><span class="fl">0.45</span>, <span class="fl">0.5</span>))</a></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
