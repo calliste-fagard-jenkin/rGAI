@@ -1427,7 +1427,7 @@ design_matrix <- function(DF, covar_formula){
   options(na.action = "na.pass")
   DM <- model.matrix(object = covar_formula, DF)
   if (DM %>% is.na %>% any) stop("Covariate values cannot include NA")
-  options("na.action" = current_action)
+  options(na.action = current_action)
   return(DM)
 }
 
