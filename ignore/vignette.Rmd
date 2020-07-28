@@ -114,7 +114,6 @@ my_mixture_GAI <- fit_GAI(start = example_par,
                           dist_choice = "ZIP", options = my_options,
                           verbose = T, hessian = T)
 
-
 # Print the MLEs to show the model has fitted correctly:
 my_mixture_GAI$par
 
@@ -224,7 +223,7 @@ brood_specific_fit$par
 ```
 
 It should be noted that the GAI package comes with no methods for interpolating 
-missing covaraite values. Because of this, any NA covariate values in data.frame
+missing covariate values. Because of this, any NA covariate values in data.frame
 objects passed to fit_GAI will cause an error to be outputted to the console. 
 The GAI package only supports 'spatial' covariates, that is, covariates whose 
 values vary only by site, and are identical for every single sampling occasion, 
@@ -326,7 +325,8 @@ my_starting_guesses <- list(mu = mu_guesses, sigma = sigma_guesses,
                             w = w_guesses)
 
 # Note: When a ZIP or NB model is used, we can also include a guess for the
-# distributional parameter by adding in a dist.par entry to this list.
+# distributional parameter by adding in a dist.par entry to this list, and 
+# additionally a retention probability 'phi' can be added for stopover models 
 
 new_brood_specific_start <-
   transform_starting_values(starting_values = my_starting_guesses,
@@ -376,7 +376,7 @@ no dependence on asymptotic properties or estimates of the Information matrix.
 ```{R bootstrap, warnings = F, echo = F}
 # To produce a bootstrap, we must specify if we wish to refit the model
 # (determining the type of bootstrap fitted), as well as the number of
-# bootstrap resamples we would like to use:
+# bootstrap resamples we would like to use (R):
 general_fit_bootstrap <- bootstrap(general_fit, R = 1000, refit = F,
                                    alpha = 0.01)
 
@@ -423,6 +423,12 @@ summary(my_mixture_GAI)
 AIC(my_mixture_GAI)
 ```
 
+The output of the fit_GAI function is a list with a few important elements.
+The 'par' element gives named estimates of the MLEs for the model parameters, 
+with 'value' giving the value of the negative log likelihood when this is 
+evaluated at the MLEs. 'counts', 'convergence', 'message' and 'hessian' are all
+standard outputs given by the optim function with details on the numerical 
+process of estimating the MLEs.
 \textcolor{red}{I'll explain how to backtransform parameter values here once
 a more user friendly version of the function is written}
 

@@ -982,7 +982,6 @@ fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
   if (!bootFLAG){
     # We take a few shortcuts during a bootstrap to save on useless computation.
     check_GAI_inputs(start, DF, a_choice, dist_choice, options, tol, maxiter)
-    
     extracted_counts <- extract_counts(DF)
     obs <- extracted_counts$matrix
     DF <- extracted_counts$DF
@@ -1414,7 +1413,8 @@ design_matrix <- function(DF, covar_formula){
   #           covar_formula - The formula specifying the covariate relationship
   # output  : A design matrix for the specified parameter value given the
   #           covariate values.
-  
+  DF[1,] %>% print
+  DF %>% head %>% print #debug
   # We must remove the LHS of the formula, if it exists (it usually does):
   RHS <- try(covar_formula[[3]], silent = T)
   
@@ -1425,7 +1425,7 @@ design_matrix <- function(DF, covar_formula){
   # Make the design matrix for the whole data set:
   current_action <- options("na.action")
   options(na.action = "na.pass")
-  DM <- model.matrix(object = covar_formula, DF)
+  DM <- model.matrix(object = covar_formula, data = DF)
   if (DM %>% is.na %>% any) stop("Covariate values cannot include NA")
   options(na.action = current_action)
   return(DM)
