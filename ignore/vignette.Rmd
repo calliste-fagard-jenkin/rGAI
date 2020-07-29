@@ -172,9 +172,6 @@ the same number of elements as the number of broods specified. If more formulae
 are specified than there are broods, these extra formulae will simply be
 ignored.
 
-\textcolor{red}{reminder to myself to add in a check for non-time-variance or 
-NA values in covariate formulas}
-
 ```{R covariates}
 # To specify a formula which will be identical for each brood, 
 general_options <- list(B = 3, shared_sigma = T,
@@ -241,16 +238,16 @@ example_NA$altitude[indices %>% as.logical] <- NA
 # of the occasion:
 example_time_varying$altitude <- example_data$altitude * example_data$occasion
 
-# Trying to fit a covaraite model with these new data will throw the relevant
+# Trying to fit a covariate model with these new data will throw the relevant
 # errors:
 error_fit <- try(fit_GAI(start = general_fit_start, DF = example_NA,
                          a_choice = "mixture", dist_choice = "P",
-                         options = general_options, hessian = T))
+                         options = general_options, hessian = T), silent = T)
 
 # Trying to fit with a time-varying formula: 
 error_fit <- try(fit_GAI(start = general_fit_start, DF = example_time_varying,
                          a_choice = "mixture", dist_choice = "P",
-                         options = general_options, hessian = T))
+                         options = general_options, hessian = T), silent = T)
 
 ```
 
@@ -373,7 +370,7 @@ no dependence on asymptotic properties or estimates of the Information matrix.
 
 \textcolor{red}{Reminder to myself to parallelise MLE resampling bootstrap}
 
-```{R bootstrap, warnings = F, echo = F}
+```{R bootstrap, warnings = F}
 # To produce a bootstrap, we must specify if we wish to refit the model
 # (determining the type of bootstrap fitted), as well as the number of
 # bootstrap resamples we would like to use (R):
@@ -425,10 +422,51 @@ AIC(my_mixture_GAI)
 
 The output of the fit_GAI function is a list with a few important elements.
 The 'par' element gives named estimates of the MLEs for the model parameters, 
-with 'value' giving the value of the negative log likelihood when this is 
+with 'value' giving the value of the negative log likelihood
 evaluated at the MLEs. 'counts', 'convergence', 'message' and 'hessian' are all
 standard outputs given by the optim function with details on the numerical 
-process of estimating the MLEs.
+process of estimating the MLEs. 'spline_specs' contains the user-specified
+options for fitting splines, and will be an empty list for mixture and 
+stopover models. 'dist_choice' and 'a_choice' contain the count distribution 
+and flight path distributions, respectively. Skeleton contains the skeleton
+list of parameter values that the package uses to fit the model, with 
+'options' being the list of options passed to fit_GAI. 'maxiter' refers to the
+maximum number of iterations used to estimate the MLEs of ZIP and NB models. 'A'
+and 'N' contain the matrix of estimated seasonal densities at each site and 
+occasion, and the vector of estimated site totals, respectively. 'DMs' contains
+the list of design matrices used by the GAI package to include the selected
+covariate formulas in the model. 'obs' contains the count observations in 
+matrix form, with sites as rows and occasions as columns. This is the same
+format as for 'A'. 'DF' contains the original data.frame supplied to fit_GAI,
+and finally, 'tol' specififies the stopping condition used for the model (an 
+epsilon such that during an iterative process for fitting a ZIP or NB model, 
+a difference of less than epsilon in the negative log likelihood between two
+iterations causes the process to terminate).
+
+## Link functions
+
+Numerical solvers that attempt to find the MLEs must be able to perform guesses
+anywhere on the real scale. This causes issues with certain parameters which 
+can only take on values in very particular ranges, such as probabilities which
+must always be between 0 and 1, for example. Further to this, the estimation 
+of values such as mean arrival times for broods can be unidentifiable if 
+specified ambiguously. In this example, unless we force the mean for the second
+brood to be greater than that for the first (and so forth), then multiple sets
+of parameters could give the same maximal value of the log likelihood. For
+these reasons, the GAI package uses link functions to map between the real line
+on which we make parameter value guesses during fitting, and the 'parameter
+space line', where all parameters are within the correct bounds.
+
+In order to be able to interpret our output values, we must apply the relevant
+link functions to transform them back to the appropriate scale. For mu
+parameters this can be done with the means_link function. For standard
+deviations, a log-link is used, and so fitted values should be exponentiated.
+Weights also use a custom link function, which can be applied to fitted values
+using the probs_link function. The extra distributional parameter for the ZIP
+uses a logistic link (by virtue of being a probability), which can be applied
+with the qlogis function, whereas the rate parameter for an NB model should
+be exponentiated, to ensure it is always positive.
+
 \textcolor{red}{I'll explain how to backtransform parameter values here once
 a more user friendly version of the function is written}
 

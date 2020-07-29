@@ -1413,8 +1413,6 @@ design_matrix <- function(DF, covar_formula){
   #           covar_formula - The formula specifying the covariate relationship
   # output  : A design matrix for the specified parameter value given the
   #           covariate values.
-  DF[1,] %>% print
-  DF %>% head %>% print #debug
   # We must remove the LHS of the formula, if it exists (it usually does):
   RHS <- try(covar_formula[[3]], silent = T)
   
