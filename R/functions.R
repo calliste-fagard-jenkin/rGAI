@@ -1966,8 +1966,16 @@ summary.GAI <- function(GAIobj){
   # output  : A "summary.GAI" object
   output <- list()
   output$MLE <- GAIobj$par
+  
+  if (!is.null(GAIobj["hessian"])){
+    output$MLE.SE <- GAIobj$hessian %>% solve %>% diag
+    names(output$MLE.SE) <- names(GAIobj$par)
+  }
+  
   output$AIC <- AIC(GAIobj)
   output$N <-GAIobj$N
+  
+  
   
   class(output) <- "summary.GAI"
   return(output)
