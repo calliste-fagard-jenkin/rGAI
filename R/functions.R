@@ -1968,8 +1968,7 @@ summary.GAI <- function(GAIobj){
   output$MLE <- GAIobj$par
   
   if (!is.null(GAIobj["hessian"])){
-    output$MLE.SE <- GAIobj$hessian %>% solve %>% diag
-    names(output$MLE.SE) <- names(GAIobj$par)
+    output$MLE.SE <- GAIobj$hessian %>% solve %>% diag %>% sqrt
   }
   
   output$AIC <- AIC(GAIobj)
@@ -1994,6 +1993,12 @@ print.summary.GAI <- function(obj){
   # purpose : Prints the output generated from the summary.GAI function
   cat("Maximum Likelihood Estimates (MLEs):\n\n")
   print(obj$MLE)
+  
+  if(obj["MLE.SE"] %>% is.null %>% `!`){
+    cat("MLE Standard Errors:\n\n")
+    print(obj$MLE.SE)
+  }
+  
   cat("\n\nAkaike's Information Criterion (AIC):", obj$AIC, "\n\n")
   cat("Average estimated site super-population size:",
       obj$N %>% na.omit %>% mean,"\n")
