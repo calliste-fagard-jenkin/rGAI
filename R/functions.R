@@ -1993,6 +1993,7 @@ print.summary.GAI <- function(obj){
   # purpose : Prints the output generated from the summary.GAI function
   cat("Maximum Likelihood Estimates (MLEs):\n\n")
   print(obj$MLE)
+  cat("/n/n")
   
   if(obj["MLE.SE"] %>% is.null %>% `!`){
     cat("MLE Standard Errors:\n\n")
@@ -2068,4 +2069,27 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
   
   # Restore default margins:
   par(mar = c(5, 4, 4, 2) + 0.1)
+}
+
+
+transform_output <- function(GAIoutput, DF){
+  # purpose : Produces a matrix of parameter outputs, transformed to the 
+  #           parameter-space scale, for mixture and stopover models.
+  # inputs  : GAIoutput - An object produced by the fit_GAI function, containing
+  #                       a fitted model
+  #           DF        - A data.frame that contains a named list of covariate
+  #                       values. If null, covariate values are assumed to be
+  #                       0, and a warning is produced.
+  if (GAIoutput$a_choice == "splines") return(GAIoutput$par)
+  
+  # It's simpler to produce the design matrices again from scratch, 
+  # using the supplied covariate values. If missing covariates are present,
+  # the produce skeleton function should produce an error:
+  produce_skeleton(GAIoutput$a_choice, GAIoutput$dist_choice, GAIoutput$options,
+                   DF)
+  
+  # Go through means, sds, weights, and distributional parameters pne by one,
+  # and 
+  
+  
 }
