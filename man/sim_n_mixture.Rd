@@ -12,11 +12,10 @@ sim_n_mixture(n, par, skeleton = NULL)
 \item{par}{A list of parameter values. The first entry contains the}
 
 \item{skeleton}{An object which helps to relist the vector of parameters into
-the expected format.
-means of each component, the second the SDs, and the last
+the expected format.means of each component, the second the SDs, and the last
 contains the weights. An exponential link is applied to the
-SDs, and the \code{\link{probs_link}} function is used on the weights.
-\code{\link{probs_link}} is simply a variant of the \code{\link{qlogis}} link}
+SDs, and the probs_link function is used on the weights.
+probs_link is simply a variant of the qlogis link}
 }
 \value{
 A vector of n generated normal-mixture samples.

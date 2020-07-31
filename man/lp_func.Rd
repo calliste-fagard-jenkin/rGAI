@@ -16,7 +16,7 @@ specified with a brood specific formula}
 \item{is_general}{A boolean indicating if the parameter for this given is the
 same as that of the other broods}
 
-\item{par}{A vector of parameter estimates, typically supplied by optiim}
+\item{par}{A vector of parameter estimates, typically supplied by optim}
 
 \item{base}{The character name of the type of parameter. "mu", "sigma", or
 "w"}

@@ -32,14 +32,12 @@ NULL
 #' @param n The number of samples to generate
 #' @param par A list of parameter values. The first entry contains the
 #' @param skeleton An object which helps to relist the vector of parameters into
-#' the expected format.
-#' means of each component, the second the SDs, and the last
+#' the expected format.means of each component, the second the SDs, and the last
 #' contains the weights. An exponential link is applied to the
-#' SDs, and the \code{\link{probs_link}} function is used on the weights.
-#' \code{\link{probs_link}} is simply a variant of the \code{\link{qlogis}} link
+#' SDs, and the probs_link function is used on the weights.
+#' probs_link is simply a variant of the qlogis link
 #'
 #' @return A vector of n generated normal-mixture samples.
-#'
 #' @export
 sim_n_mixture <- function(n, par, skeleton = NULL){
   # purpose : produces samples from a mixture of n normal distributions.
@@ -1479,7 +1477,7 @@ is_time_varying <- function(DM, DF){
 #'  specified with a brood specific formula
 #' @param is_general A boolean indicating if the parameter for this given is the
 #'  same as that of the other broods
-#' @param par A vector of parameter estimates, typically supplied by optiim
+#' @param par A vector of parameter estimates, typically supplied by optim
 #' @param base The character name of the type of parameter. "mu", "sigma", or
 #' "w"
 #' @param DMs The list of design matrices which contains all of the design
@@ -1507,7 +1505,7 @@ lp_func <- function(brood, is_indiv, is_general, par, base, DMs){
       do.call(what = lin_predictor) %>% return
     # No longer the most horrific piece of code, since it turns out this
     # approach was very versatile for performing smilar tasks at other points
-    # in the package.
+    # in the package, too.
   }#else
 }#lp_func
 
@@ -1526,7 +1524,7 @@ lp_func <- function(brood, is_indiv, is_general, par, base, DMs){
 #' @param B The number of parameters for which the base needs to be used.
 #' Typically the same as the number of broods, i.e. one mean arrival time per
 #' brood,
-#' @return A matrix of pwrameter values to be used by get_parameter_values
+#' @return A matrix of parameter values to be used by get_parameter_values
 get_parameter_values_all_rows <- function(base, par, DMs, B){
   # purpose : Helper which extracts the correct information from parameter 
   #           and design matrix object to calculate the correct final 
@@ -1579,16 +1577,16 @@ get_parameter_values_all_rows <- function(base, par, DMs, B){
 
 #' Determine if a given parameter uses covariates
 #'
-#'  PArses through a GAI model's skeleton and design matrix list to determine
+#'  Parses through a GAI model's skeleton and design matrix list to determine
 #'  which type of covariate specification has been used (No covariates, the
 #'  same formula for each brood, or brood-specific formulas)
 #' @param base The character name of the type of parameter. "mu", "sigma", or
 #' "w"
-#' @param par A vector of parameter estimates, typically supplied by optiim
+#' @param par A vector of parameter estimates, typically supplied by optim
 #' @param DMs The list of design matrices which contains all of the design
 #' matrices required to calculated the value of each parameter given its
 #' covariate values
-#' @return A boolean. TRUE if the parameter "base" uses covaraites, and 
+#' @return A boolean. TRUE if the parameter "base" uses covariates, and 
 #' FALSE otherwise.
 contains_covariates <- function(base, par, DMs){
   # purpose : Scans the (unlisted) parameters and design matrices objects to 
@@ -1607,6 +1605,22 @@ contains_covariates <- function(base, par, DMs){
   return(is_general | is_indiv_spec)
 }
 
+#' Obtain parameter values and handle covariate formulas
+#'
+#'  Uses a suite of helper functions to calculate linear predictors for 
+#'  parameter values, with and without covariate inclusion, for stopover and 
+#'  mixture models
+#' @param par A vector of parameter estimates, typically supplied by optim
+#' @param DMs The list of design matrices which contains all of the design
+#' matrices required to calculated the value of each parameter given its
+#' covariate values
+#' @param skeleton A named list of parameters which can be used to relist the 
+#' vector of parameter guesses provided by optim into the structure expected by
+#' GAI package functions
+#' @param n The integer number of data points for which these parameter values
+#' should be found
+#' @return A name dlist containing the Mu, Sigma and W parameters for the 
+#' data points
 get_parameter_values <- function(par, DMs, skeleton, n){
   # purpose : Returns a list of parameter values given design matrices and
   #           a vector of hyper-parameters given by optim()
@@ -1993,7 +2007,7 @@ print.summary.GAI <- function(obj){
   # purpose : Prints the output generated from the summary.GAI function
   cat("Maximum Likelihood Estimates (MLEs):\n\n")
   print(obj$MLE)
-  cat("/n/n")
+  cat("\n\n")
   
   if(obj["MLE.SE"] %>% is.null %>% `!`){
     cat("MLE Standard Errors:\n\n")
@@ -2071,7 +2085,18 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
   par(mar = c(5, 4, 4, 2) + 0.1)
 }
 
-
+#' Parameter transformation
+#' 
+#' Transforms parameters from the real scale on which they are estimated to the
+#' correct parameter-space scale using the appropriate link functions and 
+#' covariate formulas
+#' @param GAIoutput The output of the fit_GAI function, a fitted model
+#' @param DF A data.frame containing rows of covariate values for which
+#' transformed parameter values should be obtained. It is important that the 
+#' names of columns in this data.frame are identical to those that were
+#' specified in the options argument of the fit_GAI function.
+#' @return A named vector of parameters, on the parameter-space scale
+#' @export
 transform_output <- function(GAIoutput, DF){
   # purpose : Produces a matrix of parameter outputs, transformed to the 
   #           parameter-space scale, for mixture and stopover models.
@@ -2080,16 +2105,38 @@ transform_output <- function(GAIoutput, DF){
   #           DF        - A data.frame that contains a named list of covariate
   #                       values. If null, covariate values are assumed to be
   #                       0, and a warning is produced.
-  if (GAIoutput$a_choice == "splines") return(GAIoutput$par)
+  dist_choice <- GAIoutput$dist_choice
+  a_choice <- GAIoutput$a_choice
+  
+  if (a_choice == "splines") return(GAIoutput$par)
   
   # It's simpler to produce the design matrices again from scratch, 
   # using the supplied covariate values. If missing covariates are present,
   # the produce skeleton function should produce an error:
-  produce_skeleton(GAIoutput$a_choice, GAIoutput$dist_choice, GAIoutput$options,
-                   DF)
+  DMs <- produce_skeleton(a_choice, dist_choice, GAIoutput$options, DF)
+  skeleton <- DMs$skeleton ; DMs <- DMs$DMs
+  par <- GAIoutput$par
   
-  # Go through means, sds, weights, and distributional parameters pne by one,
-  # and 
+  # Get the means, sds, and weights using the same function as the rest of the 
+  # package:
+  vals <- get_parameter_values(par, DMs, skeleton, nrow(DF))
   
+  # For the means, we get the number of means from the skeleton, and then 
+  # add the appropriate columns to the output data.frame one by one:
+  output <- list()
+  n_mu <- length(skeleton$mu)
+  n_si <- length(skeleton$sigma)
+  n_w <- length(skeleton$w)
+  for (i in 1:n_mu) output[[paste("mu", i, sep = "")]] <- vals$means[,i]
+  for (i in 1:n_si) output[[paste("sigma", i, sep = "")]] <- vals$sds[,i]
+  for (i in 1:n_w) output[[paste("w", i, sep = "")]] <- vals$probs[,i]
   
+  # If the model is a stopover, add in the fixed phi probability:
+  par %<>% relist(skeleton = skeleton)
+  if (a_choice == "stopover") output$phi <- plogis(par$phi) 
+  
+  # Add in the distributional parameter, if there is one:
+  if (dist_choice == "ZIP") output$dist.par <- plogis(par$dist.par)
+  else if (dist_choice == "NB") output$dist.par <- exp(par$dist.par)
+  output %>% do.call(what = cbind) %>% return
 }

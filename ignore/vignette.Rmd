@@ -242,12 +242,12 @@ example_time_varying$altitude <- example_data$altitude * example_data$occasion
 # errors:
 error_fit <- try(fit_GAI(start = general_fit_start, DF = example_NA,
                          a_choice = "mixture", dist_choice = "P",
-                         options = general_options, hessian = T), silent = T)
+                         options = general_options, hessian = T))
 
 # Trying to fit with a time-varying formula: 
 error_fit <- try(fit_GAI(start = general_fit_start, DF = example_time_varying,
                          a_choice = "mixture", dist_choice = "P",
-                         options = general_options, hessian = T), silent = T)
+                         options = general_options, hessian = T))
 
 ```
 
@@ -324,7 +324,6 @@ my_starting_guesses <- list(mu = mu_guesses, sigma = sigma_guesses,
 # Note: When a ZIP or NB model is used, we can also include a guess for the
 # distributional parameter by adding in a dist.par entry to this list, and 
 # additionally a retention probability 'phi' can be added for stopover models 
-
 new_brood_specific_start <-
   transform_starting_values(starting_values = my_starting_guesses,
                             a_choice = "mixture", dist_choice = "P",
@@ -466,6 +465,15 @@ using the probs_link function. The extra distributional parameter for the ZIP
 uses a logistic link (by virtue of being a probability), which can be applied
 with the qlogis function, whereas the rate parameter for an NB model should
 be exponentiated, to ensure it is always positive.
+
+```{R backtransform}
+# The easiest way to obtain transformed parameter values on the correct scale
+# is to use the transform_output function. This function uses the skeleton and
+# options present in the fitted model object to apply covariate formulas before
+# applying link functions.
+DF_to_transform <- data.frame(altitude = c(-10, 0, 10))
+transform_output(my_mixture_GAI, DF_to_transform)
+```
 
 \textcolor{red}{I'll explain how to backtransform parameter values here once
 a more user friendly version of the function is written}

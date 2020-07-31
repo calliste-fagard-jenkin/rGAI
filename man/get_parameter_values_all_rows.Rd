@@ -21,7 +21,7 @@ Typically the same as the number of broods, i.e. one mean arrival time per
 brood,}
 }
 \value{
-A matrix of pwrameter values to be used by get_parameter_values
+A matrix of parameter values to be used by get_parameter_values
 }
 \description{
 A helper function which uses lp_func to get the values of parameters with 

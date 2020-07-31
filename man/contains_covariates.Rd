@@ -10,18 +10,18 @@ contains_covariates(base, par, DMs)
 \item{base}{The character name of the type of parameter. "mu", "sigma", or
 "w"}
 
-\item{par}{A vector of parameter estimates, typically supplied by optiim}
+\item{par}{A vector of parameter estimates, typically supplied by optim}
 
 \item{DMs}{The list of design matrices which contains all of the design
 matrices required to calculated the value of each parameter given its
 covariate values}
 }
 \value{
-A boolean. TRUE if the parameter "base" uses covaraites, and 
+A boolean. TRUE if the parameter "base" uses covariates, and 
 FALSE otherwise.
 }
 \description{
-PArses through a GAI model's skeleton and design matrix list to determine
+Parses through a GAI model's skeleton and design matrix list to determine
  which type of covariate specification has been used (No covariates, the
  same formula for each brood, or brood-specific formulas)
 }
