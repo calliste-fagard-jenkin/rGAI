@@ -865,7 +865,7 @@ profile_ll <- function(par, obs, skeleton, a_choice = "mixture",
   # The splines function returns a vector, since no covariates are allowed,
   # so we convert the output to a matrix, to match "obs":
   if (a_choice == "splines") a_func %<>% matrix(nrow = nS, ncol = nT, byrow = T)
-  a_func[is.na(obs)] <- NA
+  #a_func[is.na(obs)] <- NA
   
   # Get N from the specified argument or with a profile likelihood approach:
   if (is.null(N)) N <- y_dot/apply(a_func, 1, sum, na.rm = T)
@@ -1278,12 +1278,17 @@ transform_starting_values <- function(starting_values, a_choice, dist_choice,
   output <- rep(0, skeleton %>% unlist %>% length) %>% relist(skeleton)
   names(output) <- names(skeleton)
   
-  # Add in the user guesses for "mu", "sigma", "w" and "dist.par" if they exist:
-  if (!is.null(dist_guess))  output[["dist.par"]] <- dist_guess
+  # Add in the user guesses for "mu", "sigma", "w" and "dist.par" if they exist,
+  # but only if the model deems them necessary:
+  if (!is.null(w_guess) & !is.null(skeleton[["w"]]))  output[["w"]] <- w_guess
   if (!is.null(sigma_guess))  output[["sigma"]] <- sigma_guess
-  if (!is.null(phi_guess))  output[["phi"]] <- phi_guess
   if (!is.null(mu_guess))  output[["mu"]] <- mu_guess
-  if (!is.null(w_guess))  output[["w"]] <- w_guess
+  
+  if (!is.null(phi_guess) & !is.null(skeleton[["phi"]]))
+    output[["phi"]] <- phi_guess
+  
+  if (!is.null(dist_guess) & !is.null(skeleton[["dist.par"]])) 
+    output[["dist.par"]] <- dist_guess
   
   # A lazy guess of all 0s for splines:
   if (a_choice == "splines") return(output)
@@ -1295,7 +1300,13 @@ transform_starting_values <- function(starting_values, a_choice, dist_choice,
     # specified:
     output %<>% transform_values(base = "mu", skeleton = skeleton)
     output %<>% transform_values(base = "sigma", skeleton = skeleton)
-    output %<>% transform_values(base = "w", skeleton = skeleton)
+    
+    # In the case of a single brood, there won't be any weights, so we avoid
+    # triggering any warning messages this way:
+    if (skeleton[["w"]] %>% is.null %>% `!`) output %<>%
+      transform_values(base = "w", skeleton = skeleton)
+    
+    # Add in phi if it's needed
     if (a_choice == "stopover" & phi_guess %>% is.null %>% `!`)
       output[["phi"]] <- qlogis(phi_guess)
     
@@ -1672,7 +1683,6 @@ bootstrap_combine <- function(sapply_output){
   # note : The function expects each output to be a list containing three items,
   #        the output is a list of three items with rbinded outputs from all
   #        the arguments.
-
   argg <- sapply_output
   n <- length(argg)
   output <- argg[[1]]
@@ -1688,7 +1698,7 @@ bootstrap_combine <- function(sapply_output){
 
 bootstrap_non_parallel <- function(R, MLE, sigma, obs, skeleton, a_choice,
                                    dist_choice, DMs, spline_specs, parameters,
-                                   N_vals, mean_vals){
+                                   N_vals, A_vals, mean_vals){
   # purpose : Computes the for loop for a parameter resampling bootstrap on a
   #           single core
   # inputs  : R        -
@@ -1708,15 +1718,18 @@ bootstrap_non_parallel <- function(R, MLE, sigma, obs, skeleton, a_choice,
                                 spline_specs = spline_specs, returnN = T)
     
     iteration_N <- iteration_N_A$N
+    iteration_A <- iteration_N_A$a_func %>% as.vector
     iteration_mean <- mean(iteration_N)
     
     # Store the iteration results:
     parameters[i,] <- iteration_par
-    N_vals[i,] <- iteration_N
     mean_vals[i,] <- iteration_mean
+    N_vals[i,] <- iteration_N
+    A_vals[i,] <- iteration_A
   }
   
-  return(list(parameters = parameters, N_vals = N_vals, mean_vals = mean_vals))
+  return(list(parameters = parameters, N_vals = N_vals, A_vals = A_vals,
+              mean_vals = mean_vals))
 }
 
 reformDMs <- function(DMs, n_sites, sites){
@@ -1726,10 +1739,10 @@ reformDMs <- function(DMs, n_sites, sites){
   # inputs  : DMs      - The design matrices object 
   #           n_sites  - The number of sites in the study
   #           sites    - The resampled site indices
-  # output  : The DMs object, but reordered. 
+  # output  : The DMs object, but reordered.
   
   n_dms <- length(DMs)
-  
+
   # Time-varying covariates aren't allowed, so we can take some shortcuts:
   if(length(DMs) > 0){
     n_occasions <- DMs[[1]] %>% dim %>% `[`(1) %>% `/`(n_sites)
@@ -1769,13 +1782,15 @@ resample_bootstrap_one_iter <- function(sites, DMs, iteration_object, obs,
                     verbose = F, hessian = F,  bootstrap = iteration_object,
                     tol = tol, maxiter = maxiter)
   
-  return(list(iteration_par = fitted$mle,  iteration_N = fitted$N,
+  return(list(iteration_par = fitted$mle,
+              iteration_N = fitted$N,
+              iteration_A = fitted$A %>% as.vector,
               iteration_mean = mean(fitted$N)))
 }
 
 resample_bootstrap <- function(cl, R, start, obs, skeleton, a_choice,
                                dist_choice, DMs, spline_specs, tol, maxiter,
-                               parameters, N_vals, mean_vals){
+                               parameters, N_vals, A_vals, mean_vals){
   # purpose : Computes the non-parametric bootstrap by refitting the model at
   #           each iteration.
   # inputs  : R            - The number of bootstrap iterations to be performed
@@ -1809,7 +1824,7 @@ resample_bootstrap <- function(cl, R, start, obs, skeleton, a_choice,
   if (!is.null(cl)){
     parSapply(cl, rep(sites, R), resample_bootstrap_one_iter, DMs = DMs,
               iteration_object = iteration_object, obs = obs, maxiter = maxiter,
-             tol = tol, a_choice = a_choice, dist_choice = dist_choice,
+              tol = tol, a_choice = a_choice, dist_choice = dist_choice,
               start = start, simplify = F) %>% bootstrap_combine %>% return
   }
   
@@ -1898,8 +1913,10 @@ bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
   nS <- dims[1] ; nT <- dims[2]
   parameters <- matrix(NA, nrow = R, ncol = length(MLE))
   colnames(parameters) <- names(MLE)
-  N_vals <- matrix(NA, nrow = R, ncol = nS)
+  
+  A_vals <- matrix(NA, nrow = R, ncol = nS * nT)
   mean_vals <- matrix(NA, nrow = R, ncol = 1)
+  N_vals <- matrix(NA, nrow = R, ncol = nS)
   
   # Extract required objects:
   spline_specs <- GAI_fit$spline_specs
@@ -1915,33 +1932,41 @@ bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
   if (refit){
     # Resample data bootstrap:
     result <- resample_bootstrap(cl, R, MLE, obs, skeleton, a_choice,
-                                 dist_choice, DMs, spline_specs, tol, maxiter,
-                                 parameters, N_vals, mean_vals)
-  }
+                                 dist_choice, DMs, spline_specs, tol,
+                                 maxiter, parameters, N_vals, A_vals,
+                                 mean_vals)
+    }
   
   else {
     # Resample the parameters bootstrap
     if (GAI_fit$hessian %>% is.null) stop("Hessian required in fitted model")
-    
     result <- bootstrap_non_parallel(R, MLE, sigma, obs, skeleton, a_choice,
                                      dist_choice, DMs, spline_specs,
-                                     parameters, N_vals, mean_vals)
+                                     parameters, N_vals, A_vals, mean_vals)
   }
   
   parameters <- result[[1]]
   N_vals <- result[[2]]
-  mean_vals <- result[[3]]
+  A_vals <- result[[3]]
+  mean_vals <- result[[4]]
   
   # Calculate the confidence intervals using the results:
   probs <- c(alpha / 2, 1 - alpha / 2)
   par_CI <- apply(parameters, 2, quantile, probs = probs)
   N_CI <- apply(N_vals, 2, quantile, probs = probs)
+  A_CI <- apply(A_vals, 2, quantile, probs = probs) %>% as.matrix(nrow = nS)
   index_CI <- apply(mean_vals, 2, quantile, probs = probs)
   
   if(parallel) stopCluster(cl)
   
-  return(list(par = par_CI, sites = N_CI, index = index_CI,
-              par_raw = parameters, N_raw = N_vals))
+  return(list(par = par_CI,
+              sites = N_CI,
+              A_lower = A_CI[1,] %>% matrix(nrow = nS),
+              A_upper = A_CI[2,] %>% matrix(nrow = nS),
+              index = index_CI,
+              par_raw = parameters,
+              N_raw = N_vals,
+              A_raw = matrix(A_vals, nrow = nS)))
 }
 
 
@@ -1988,12 +2013,9 @@ summary.GAI <- function(GAIobj){
   output$AIC <- AIC(GAIobj)
   output$N <-GAIobj$N
   
-  
-  
   class(output) <- "summary.GAI"
   return(output)
 }
-
 
 #' GAI model summary printing
 #' 

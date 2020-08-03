@@ -283,12 +283,12 @@ lines(rep(13.0, 2), c(plot.base, 21.3), col = plot.col)
 lines(rep(23.0, 2), c(plot.base, 8), col = plot.col) 
 
 # Mean brood dispersion lines:
-lines(c(1, 8), rep(plot.base, 2), col = plot.col)
+lines(c(1, 7.5), rep(plot.base, 2), col = plot.col)
 lines(c(9, 18), rep(plot.base, 2), col = plot.col)
 lines(c(19, 26), rep(plot.base, 2), col = plot.col)
 
 # The length of the three horizontal bars that measure the width of our broods:
-brood_widths <- c(7, 9, 7)
+brood_widths <- c(6.5, 9, 7)
 
 # Using a very rough rule of thumb that 95% of data in a normal distribution are
 # found within 1.96 standard deviations from the means, we use the half width of
@@ -386,23 +386,19 @@ refitting_bootstrap <- bootstrap(general_fit, R = 10, refit = T, parallel = T,
 
 
 The bootstraps output contains raw values from each iteration of the estimated
-parameter values, the estimated site totals (site superpopulations) for each 
-site, and the average estimated site totals. The $1 - \alpha$ confidence
-intervals are available in the \$par, \$sites and \$index elements of the
-bootstrap output for the parameters, individual site totals and average site 
-total, respectively:
+parameter values, the flight path densities for each site and occasioon, the estimated site totals (site superpopulations), and the average estimated site
+total. The $1 - \alpha$ confidence intervals are available in the \$par,
+\$sites and \$index elements of the bootstrap output for the parameters,
+individual site totals and average site total, respectively:
 
 ```{R intervals}
 # Taking a look at the results of the 'refit the model at each iteration'
 # style of bootstrap:
 refitting_bootstrap$par
+
 ```
 
 # Model Outputs
-\textcolor{red}{A section to be added explaining all of the objects the fit_GAI
-functions adds to its output, and how to use these to make plots, calculate
-the 'actual' Generalised Abundance Index (which I can easily add as an output
-itself), etc.}
 
 The GAI package comes with some simple functionality for summarising models, 
 as well as more detailed outputs, which will be covered in more detail. The 
@@ -442,7 +438,7 @@ epsilon such that during an iterative process for fitting a ZIP or NB model,
 a difference of less than epsilon in the negative log likelihood between two
 iterations causes the process to terminate).
 
-## Link functions
+# Transforming Parameter Estimates
 
 Numerical solvers that attempt to find the MLEs must be able to perform guesses
 anywhere on the real scale. This causes issues with certain parameters which 
@@ -472,11 +468,16 @@ be exponentiated, to ensure it is always positive.
 # options present in the fitted model object to apply covariate formulas before
 # applying link functions.
 DF_to_transform <- data.frame(altitude = c(-10, 0, 10))
-transform_output(my_mixture_GAI, DF_to_transform)
-```
+transform_output(brood_specific_fit, DF_to_transform)
 
-\textcolor{red}{I'll explain how to backtransform parameter values here once
-a more user friendly version of the function is written}
+# It's important to include all covariates exactly as they were named in the 
+# call to fit_GAI, otherwise an error will be thrown, giving the name of the 
+# missing covariate.
+try(transform_output(brood_specific_fit, data.frame(altiitude = c(-10, 0, 10))))
+
+# NA covariate values will throw an error, as always:
+try(transform_output(brood_specific_fit, data.frame(altitude = c(NA, 0, 10))))
+```
 
 # Plotting Fitted Curves
 
