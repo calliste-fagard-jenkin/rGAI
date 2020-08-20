@@ -1363,6 +1363,10 @@ extract_counts <- function(data_frame, checks = T, returnDF = T){
   unique_occasions <- unique(data_frame$occasion)
   nT <- length(unique_occasions)
   
+  # get the names of extra columns:
+  covariate_names <- data_frame %>% rownames %>%
+    setdiff(c("count", "site", "occasion"))
+  
   # To avoid the assumption that sites and occasions start at the number 1, or
   # that the counts column in the data_frame are well-ordered in terms of 
   # sites and occasions, we loop through to extract the correct count for each
@@ -1395,10 +1399,19 @@ extract_counts <- function(data_frame, checks = T, returnDF = T){
         over %<>% `+`(1)
       }
       
-      # if no count is specified, mark it as missing:
-      else {output[s_counter, t_counter] <- NA; under %<>% `+`(1)}
+     
+      else {
+        # if no count is specified, mark it as missing, and add back in NA
+        # values for all covariates:
+        output[s_counter, t_counter] <- NA; under %<>% `+`(1)
+        count_st_sub <- list(site = s, occasion = t, count = NA)
+        for (cov in covariate_names) count_st_sub[[cov]] <- NA
+        count_st_sub %<>% as.data.frame
+        print(count_st_sub)
+      }
       
-      outputDF %<>% rbind(count_st_sub[1, ])
+      try(outputDF %<>% rbind(count_st_sub[1, ]), silent = t)
+      if (class(outputDF) == "try-error") print("debug error")
     }
   }
   
@@ -1408,7 +1421,7 @@ extract_counts <- function(data_frame, checks = T, returnDF = T){
                   "were not specified."))
     
     if (under > 0 & returnDF)
-      stop("DF with covariates could not be returned, due to missing entries")
+      warning("Covariates for missing count entries set to NA")
   }
   
   if (returnDF) return(list(matrix = output, DF = outputDF))

@@ -23,7 +23,7 @@ providing an example workflow on simulated data.
 # Installing the Package from Source
 
 In order to install the GAI package from source, the folder containing the
-source code must be downloaded from Github: https://github.com/calliste-fagard-jenkin/butterflyCode
+source code must be downloaded from Github: https://github.com/calliste-fagard-jenkin/GAI
 
 ```{R loading, results = 'hide', warning = F}
 #install.packages('devtools')
@@ -49,7 +49,7 @@ head(example_data)
 # a matrix of counts, to facilitate plotting. This function also checks if 
 # the survey has any missing occasions, so can be a useful way of sanitising
 # a new dataset:
-test_data <- extract_counts(example_data, returnDF = F)
+test_data <- extract_counts(example_data[-5,], returnDF = T)
 
 # Plot the observed densities, averaged across all sites:
 test_data %>% apply(2, mean, na.rm = T) %>% 
