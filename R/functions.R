@@ -772,7 +772,7 @@ produce_skeleton <- function(a_choice = "mixture", distribution = "P",
     # now make the skeleton:
     skeleton$mu <- rep(NA, B)
     skeleton$sigma <- rep(NA, sigma_num)
-    skeleton$w <- rep(NA, B - 1)
+    if (B > 1) skeleton$w <- rep(NA, B - 1)
     
     # Update the design matrices and skeletons for the mean parameters:
     updates <- get_cov_skeleton_and_DM("mu", options, DF, B, skeleton, DMs)
