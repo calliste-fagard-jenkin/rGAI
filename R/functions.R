@@ -771,10 +771,12 @@ produce_skeleton <- function(a_choice = "mixture", distribution = "P",
     skeleton <- updates$skeleton ; DMs <- updates$DMs
     
     # Update the design matrices and skeletons for the w parameters:
-    updates <- get_cov_skeleton_and_DM("w", options, DF, B - 1, skeleton, DMs)
-    skeleton <- updates$skeleton ; DMs <- updates$DMs
+    if (B > 1){
+      updates <- get_cov_skeleton_and_DM("w", options, DF, B - 1, skeleton, DMs)
+      skeleton <- updates$skeleton ; DMs <- updates$DMs
+    }
     
-    # for the stopover model, add the retention prob:
+    # For the stopover model, add the retention prob:
     if (a_choice == "stopover") skeleton$phi <- NA 
   }
   
@@ -1643,9 +1645,10 @@ get_parameter_values <- function(par, DMs, skeleton, n){
   #           Each component is a matrix. The rows are a site occasion pair, and
   #           the columns refer to the value of the parameter for each brood.
   #           The parameters are given for the first time step first, and then 
-  #           the second, etc. i.e, a suurvey with 3 sites, 5 occasions and 2 
+  #           the second, etc. i.e, a survey with 3 sites, 5 occasions and 2 
   #           broods would have a 'means' output which is a 15x2 matrix.
   par %<>% relist(skeleton)
+  probs <- 1 # For single brood case
   
   # Use the helper function to get the parameter values for the means, 
   # SDs, and weights one by one:
@@ -1669,7 +1672,7 @@ get_parameter_values <- function(par, DMs, skeleton, n){
     get_parameter_values_all_rows("w", par, DMs, length(par$w)) %>%
     apply(1, probs_link) %>% t
   
-  else probs <- probs_link(par$w) %>%
+  else if (!is.null(par$w)) probs <- probs_link(par$w) %>%
     matrix(nrow = n, ncol = length(par$w) + 1, byrow = T)
   
   return(list(means = means, sds = sds, probs = probs))
