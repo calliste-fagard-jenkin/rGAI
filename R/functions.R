@@ -312,19 +312,6 @@ generate_mixture_pars <- function(nT, skeleton, sd_max = 1, l = -5, u = 5){
   
   return(copy)
 }
-
-#' Testing if dependencies are correctly loaded
-#'
-#' As a simple check to verify that the GAI package has succesfully been able
-#' to load its dependencies.
-#'
-#' @return NULL
-#' @export
-test_dependencies <- function(){
-  1 %>% print
-  bs(1:10)
-  sourceCpp(code = "")
-}
  
 #' Generate random parameter values for spline models
 #'
@@ -784,8 +771,10 @@ produce_skeleton <- function(a_choice = "mixture", distribution = "P",
     skeleton <- updates$skeleton ; DMs <- updates$DMs
     
     # Update the design matrices and skeletons for the w parameters:
-    updates <- get_cov_skeleton_and_DM("w", options, DF, B - 1, skeleton, DMs)
-    skeleton <- updates$skeleton ; DMs <- updates$DMs
+    if (B > 1){
+      updates <- get_cov_skeleton_and_DM("w", options, DF, B - 1, skeleton, DMs)
+      skeleton <- updates$skeleton ; DMs <- updates$DMs
+    }
     
     # for the stopover model, add the retention prob:
     if (a_choice == "stopover") skeleton$phi <- NA 
@@ -1263,7 +1252,7 @@ transform_starting_values <- function(starting_values, a_choice, dist_choice,
   # purpose : Takes a named list of inputs and outputs the vector of parameters
   #           expected by fit_GAI, on the link scale
   # inputs  : A named list of parameter values on the real scale
-  # output  : A named vecotr of parameter values on the real scale.
+  # output  : A named vector of parameter values on the real scale.
   skeleton <- produce_skeleton(a_choice, dist_choice, options, DF)$skeleton
   
   dist_guess <- starting_values[["dist.par"]]
@@ -1407,11 +1396,9 @@ extract_counts <- function(data_frame, checks = T, returnDF = T){
         count_st_sub <- list(site = s, occasion = t, count = NA)
         for (cov in covariate_names) count_st_sub[[cov]] <- NA
         count_st_sub %<>% as.data.frame
-        print(count_st_sub)
       }
       
-      try(outputDF %<>% rbind(count_st_sub[1, ]), silent = t)
-      if (class(outputDF) == "try-error") print("debug error")
+      outputDF %<>% rbind(count_st_sub[1, ])
     }
   }
   
