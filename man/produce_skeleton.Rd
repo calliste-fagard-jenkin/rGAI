@@ -4,8 +4,12 @@
 \alias{produce_skeleton}
 \title{Produce a skeleton for GAI parameters}
 \usage{
-produce_skeleton(a_choice = "mixture", distribution = "P",
-  options = list(), DF = NULL)
+produce_skeleton(
+  a_choice = "mixture",
+  distribution = "P",
+  options = list(),
+  DF = NULL
+)
 }
 \arguments{
 \item{a_choice}{The character name for the seasonal trend function being

@@ -4,8 +4,14 @@
 \alias{plot.GAI}
 \title{GAI flight path plotting}
 \usage{
-\method{plot}{GAI}(GAIobj, all_sites = F, quantiles = c(0.05, 0.5,
-  0.95), scale_by_N = T, colours = 1:8, shift = c(-0.25, 0.5))
+\method{plot}{GAI}(
+  GAIobj,
+  all_sites = F,
+  quantiles = c(0.05, 0.5, 0.95),
+  scale_by_N = T,
+  colours = 1:8,
+  shift = c(-0.25, 0.5)
+)
 }
 \arguments{
 \item{GAIobj}{An object produced by using the summary.GAI function an a model

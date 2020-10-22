@@ -4,8 +4,14 @@
 \alias{bootstrap}
 \title{Bootstrapping for GAI models}
 \usage{
-bootstrap(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
-  cores = NULL)
+bootstrap(
+  GAI_fit,
+  R = 100,
+  refit = T,
+  alpha = 0.05,
+  parallel = T,
+  cores = NULL
+)
 }
 \arguments{
 \item{GAI_fit}{An object produced by using fit_GAI for model fitting}

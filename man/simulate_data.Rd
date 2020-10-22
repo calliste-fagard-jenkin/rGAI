@@ -4,9 +4,16 @@
 \alias{simulate_data}
 \title{Simulate data from the GAI}
 \usage{
-simulate_data(par, nT = 25, totals = rep(500, 50),
-  a_type = "mixture", dist_type = "P", options = list(),
-  thin = 0.4, returnDF = F)
+simulate_data(
+  par,
+  nT = 25,
+  totals = rep(500, 50),
+  a_type = "mixture",
+  dist_type = "P",
+  options = list(),
+  thin = 0.4,
+  returnDF = F
+)
 }
 \arguments{
 \item{par}{The vector of parameter values to be used}

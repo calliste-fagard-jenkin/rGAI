@@ -1,7 +1,12 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
-// @export
+//' Takes a vector of numbers on the real line, and maps them to a unique
+//' vector of probabilities that sum to one
+//'
+//' @param x The vector of values on the real line
+//' @return A vector of probabilities that sum to one
+//' @export
 // [[Rcpp::export]]
 NumericVector probs_link(NumericVector x){
   // purpose : Takes a vector of parameter guesses on the real line and maps
@@ -117,8 +122,14 @@ NumericVector stopover_for_loop(NumericVector betas, NumericVector phi){
   return a_func;
 }// stopover_for_loop
 
-// @export
-//[[Rcpp::export]]
+//' Takes a vector of numbers on the real line, and maps them to a unique
+//' vector of means
+//'
+//' @param x The vector of values on the real line, which tells us how far
+//' the next value is from the previous mean
+//' @return A vector of means
+//' @export
+// [[Rcpp::export]]
 NumericVector means_link(NumericVector means){
   // purpose : Takes a vector of the type (mean1, diff1, diff2, ...) and turns
   //           it into a vector of the type (mean1, mean2, means3, ...)

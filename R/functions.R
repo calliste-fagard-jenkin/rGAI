@@ -756,7 +756,7 @@ produce_skeleton <- function(a_choice = "mixture", distribution = "P",
                         yes = 1,
                         no = B*!options$shared_sigma) %>% c(1) %>% max
     
-    # now make the skeleton:
+    # Now make the skeleton:
     skeleton$mu <- rep(NA, B)
     skeleton$sigma <- rep(NA, sigma_num)
     if (B > 1) skeleton$w <- rep(NA, B - 1)
@@ -771,10 +771,8 @@ produce_skeleton <- function(a_choice = "mixture", distribution = "P",
     skeleton <- updates$skeleton ; DMs <- updates$DMs
     
     # Update the design matrices and skeletons for the w parameters:
-    if (B > 1){
-      updates <- get_cov_skeleton_and_DM("w", options, DF, B - 1, skeleton, DMs)
-      skeleton <- updates$skeleton ; DMs <- updates$DMs
-    }
+    updates <- get_cov_skeleton_and_DM("w", options, DF, B - 1, skeleton, DMs)
+    skeleton <- updates$skeleton ; DMs <- updates$DMs
     
     # for the stopover model, add the retention prob:
     if (a_choice == "stopover") skeleton$phi <- NA 
@@ -1244,7 +1242,7 @@ transform_values <- function(base, starting, skeleton){
 #' @param DF A data.frame which must be included when covariate formulas are
 #' specified, so that the correct number of parameters required by each 
 #' formula can be determined. Calling extract_counts on this data.frame first
-#' to sanitise it is recommended
+#' to sanitize it is recommended
 #' @return A named list of starting parameter values, all on the link scale.
 #' @export
 transform_starting_values <- function(starting_values, a_choice, dist_choice,

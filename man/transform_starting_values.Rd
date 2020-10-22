@@ -4,8 +4,13 @@
 \alias{transform_starting_values}
 \title{Transform starting values to the link scale}
 \usage{
-transform_starting_values(starting_values, a_choice, dist_choice, options,
-  DF = list())
+transform_starting_values(
+  starting_values,
+  a_choice,
+  dist_choice,
+  options,
+  DF = list()
+)
 }
 \arguments{
 \item{starting_values}{A named list including starting values for "mu",
@@ -21,7 +26,7 @@ spline parameters, covariate formulas, etc.}
 \item{DF}{A data.frame which must be included when covariate formulas are
 specified, so that the correct number of parameters required by each 
 formula can be determined. Calling extract_counts on this data.frame first
-to sanitise it is recommended}
+to sanitize it is recommended}
 }
 \value{
 A named list of starting parameter values, all on the link scale.
