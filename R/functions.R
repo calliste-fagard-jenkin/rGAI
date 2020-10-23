@@ -2055,16 +2055,19 @@ print.summary.GAI <- function(obj){
 #' be used to produce a curve. Defaults to c(0.05, 0.5, 0.95)
 #' @param scale_by_N If TRUE, then the seasonal flight component for each site
 #' will be scaled by that site's estimated site total. Defaults to TRUE.
-#' @param colours A vector of colour values to be used for plotting the
-#' different curves. Defaults to integers 1:8 to represent the R base graphics
-#' colours, but can also take character hex colour values.
-#' @param inset A vector of displacement in the x and y directions respectively, 
-#' that will move where the legends are placed outside of the plot window
+#' @param colours A list of colour values to be used for plotting different
+#' curves. Defaults to the GGplot default 10 colour palette repeated 10 times to
+#' accommodate up to 100 sites (even when ggplot is not used)
+#' @param shift An optional parameter which can be used to shift the location
+#' of the key when using base graphics, as this can often be misplaced.
+#' @param useGGplot If TRUE, will use GGplot to produce the graphics instead of
+#' the standard base R graphics
 #' @return NULL
 #' @export
 plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
-                     scale_by_N = T, colours = 1:8, shift = c(-0.25, 0.5),
-                     useGGplot = F){
+                     scale_by_N = T, shift = c(-0.25, 0.5), useGGplot = T,
+                     colours = hcl(h = seq(15, 375, length = 11),
+                                   l = 65, c = 100)[1:10] %>% rep(10)){
   # purpose : Produces simple plots of the flight path distribution of a GAI
   # inputs  :GAIobj     - The fitted GAI model object from the fit_GAI function
   #          all_sites  - If TRUE, the curves for every single site are plotted
@@ -2075,7 +2078,10 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
   #                       site will be scaled by that site's estimated site 
   #                       total
   #          colours    - A list of colour values to be used for
-  #                       plotting different curves.
+  #                       plotting different curves. Defaults to the GGplot 
+  #                       default 10 colour palette repeated 10 times to 
+  #                       accommodate up to 100 sites (even when ggplot is not
+  #                       used)
   #          useGGplot  - If TRUE, will use the GGplot package to produce the
   #                       plots instead
   # output  : NULL
@@ -2092,6 +2098,30 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
   
   if (useGGplot){
     require("ggplot2")
+    require("reshape2")
+    
+    # Determine the correct label names:
+    toplot <- A %>% t %>% as.data.frame
+    
+    if (all_sites){
+      lab <- "Site"
+      colnames(toplot) <- 1:ncol(toplot)
+    }
+    
+    else lab <- "Quantile"
+    
+    # Reformat the data for ggplot:
+    occasions <- 1:ncol(A)
+    mes_vars <- colnames(toplot)
+    toplot$occasions <- occasions
+    toplot %<>% melt(id.vars = "occasions", measure.vars = mes_vars)
+    
+    # Produce the plot:
+    ggplot(toplot, aes(x = occasions, y = value)) +
+      geom_line(aes(color = variable)) +
+      scale_color_manual(values = c(colours)) + 
+      ylab(ylab) + xlab("Occasion") +
+      labs(color = lab)
   }
   
   else{

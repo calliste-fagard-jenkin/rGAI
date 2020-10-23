@@ -28,14 +28,7 @@ source code must be downloaded from Github: https://github.com/calliste-fagard-j
 ```{R loading, results = 'hide', warning = F}
 #install.packages('devtools')
 library(devtools, quietly = T)
-
-# If you have already downloaded the package from github:
-install("GAI")
-
-# Alternatively, if you would like R to download the package directly from 
-# github automatically, use the below line of code to install the package
-# instead:
-#install_github("calliste-fagard-jenkin/GAI", quiet = T)
+install_github("calliste-fagard-jenkin/GAI", quiet = T)
 library(GAI)
 ```
 
@@ -134,6 +127,9 @@ my_spline_GAI <- fit_GAI(start = rep(0, 20), DF = example_data,
 
 # Print the MLEs to show the model has fitted correctly:
 my_spline_GAI$par
+
+### TESTING, REMOVE FROM VIGNETTE:
+plot(my_spline_GAI, all_sites = F, useGGplot = T)
 ```
 If an incorrect number of starting values is given to fit_GAI, an error will 
 be raised, and a printout will indicate the parameter starting values that
