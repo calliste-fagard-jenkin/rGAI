@@ -28,7 +28,14 @@ source code must be downloaded from Github: https://github.com/calliste-fagard-j
 ```{R loading, results = 'hide', warning = F}
 #install.packages('devtools')
 library(devtools, quietly = T)
-install_github("calliste-fagard-jenkin/GAI", quiet = T)
+
+# If you have already downloaded the package from github:
+install("GAI")
+
+# Alternatively, if you would like R to download the package directly from 
+# github automatically, use the below line of code to install the package
+# instead:
+#install_github("calliste-fagard-jenkin/GAI", quiet = T)
 library(GAI)
 ```
 
@@ -49,7 +56,7 @@ head(example_data)
 # a matrix of counts, to facilitate plotting. This function also checks if 
 # the survey has any missing occasions, so can be a useful way of sanitising
 # a new dataset:
-test_data <- extract_counts(example_data[-5,], returnDF = T)
+test_data <- extract_counts(example_data, returnDF = T)$matrix
 
 # Plot the observed densities, averaged across all sites:
 test_data %>% apply(2, mean, na.rm = T) %>% 

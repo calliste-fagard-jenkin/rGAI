@@ -1344,16 +1344,16 @@ extract_counts <- function(data_frame, checks = T, returnDF = T){
       stop('site must be numeric or factor')
   }
   
-  # extract number of sites:
+  # Extract number of sites:
   unique_sites <- unique(data_frame$site)
   nS <- length(unique_sites)
   
-  # extract number of occasions:
+  # Extract number of occasions:
   unique_occasions <- unique(data_frame$occasion)
   nT <- length(unique_occasions)
   
-  # get the names of extra columns:
-  covariate_names <- data_frame %>% rownames %>%
+  # Get the names of extra columns:
+  covariate_names <- data_frame %>% colnames %>%
     setdiff(c("count", "site", "occasion"))
   
   # To avoid the assumption that sites and occasions start at the number 1, or
@@ -1365,32 +1365,32 @@ extract_counts <- function(data_frame, checks = T, returnDF = T){
   over <- under <- t_counter <- s_counter <- 0
   
   for (t in unique_occasions){
-    # increment occasion index, and reset site index:
+    # Increment occasion index, and reset site index:
     t_counter <- t_counter + 1
     s_counter <- 0
     
     for (s in unique_sites){
-      # increment site index:
+      # Increment site index:
       s_counter <- s_counter + 1
       
-      # extract the relevant portion of the data.frame:
+      # Extract the relevant portion of the data.frame:
       count_st_sub <- subset(data_frame, data_frame$site == s &
                                data_frame$occasion == t)
-      # extract the count:
+      # Extract the count:
       count_st <- count_st_sub$count
       
-      # accept the count if it's the only one specified:
+      # Accept the count if it's the only one specified:
       if (length(count_st) == 1){output[s_counter, t_counter] <- count_st}
       
-      # if multiple counts specified for the same point, take the first:
+      # If multiple counts specified for the same point, take the first:
       else if (length(count_st) > 1){
         output[s_counter, t_counter] <- count_st[1]
-        over %<>% `+`(1)
+        over <- over + 1
       }
       
      
       else {
-        # if no count is specified, mark it as missing, and add back in NA
+        # If no count is specified, mark it as missing, and add back in NA
         # values for all covariates:
         output[s_counter, t_counter] <- NA; under %<>% `+`(1)
         count_st_sub <- list(site = s, occasion = t, count = NA)
@@ -1402,7 +1402,7 @@ extract_counts <- function(data_frame, checks = T, returnDF = T){
     }
   }
   
-  # let the user know we dealt with unexpected cases:
+  # Let the user know we dealt with unexpected cases:
   if (over > 0 | under > 0){
     warning(paste(over, "counts were specified multiples times.", under,
                   "were not specified."))
@@ -2063,7 +2063,8 @@ print.summary.GAI <- function(obj){
 #' @return NULL
 #' @export
 plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
-                     scale_by_N = T, colours = 1:8, shift = c(-0.25, 0.5)){
+                     scale_by_N = T, colours = 1:8, shift = c(-0.25, 0.5),
+                     useGGplot = F){
   # purpose : Produces simple plots of the flight path distribution of a GAI
   # inputs  :GAIobj     - The fitted GAI model object from the fit_GAI function
   #          all_sites  - If TRUE, the curves for every single site are plotted
@@ -2075,6 +2076,8 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
   #                       total
   #          colours    - A list of colour values to be used for
   #                       plotting different curves.
+  #          useGGplot  - If TRUE, will use the GGplot package to produce the
+  #                       plots instead
   # output  : NULL
   A <- GAIobj$A
   
@@ -2087,25 +2090,31 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
   ylab <- "Seasonal flight path"
   if (scale_by_N) ylab %<>% paste("scaled by site total")
   
-  # Produce the plot for the first row:
-  par(xpd = T, mar = par()$mar + c(0, 0, 0, 8))
-  plot(A[1,], type = 'l', xlab = "Occasion", ylab = ylab, ylim = range(A),
-       col = colours[1], pch = 16)
-  
-  # Add on all the others:
-  if (plot_lines > 1){
-    for (i in 2:plot_lines) lines(A[i,], col = colours[i], pch = 16)
+  if (useGGplot){
+    require("ggplot2")
   }
   
-  # Create the legend:
-  if (all_sites) leg <- paste("site", 1:nrow(A))
-  else leg <- paste("quantile", quantiles)
+  else{
+    # Produce the plot for the first row:
+    par(xpd = T, mar = par()$mar + c(0, 0, 0, 8))
+    plot(A[1,], type = 'l', xlab = "Occasion", ylab = ylab, ylim = range(A),
+         col = colours[1], pch = 16)
   
-  legend("bottomright", legend = leg, fill = colours[1:nrow(A)],
-         inset = shift, bty = "n")
+    # Add on all the others:
+    if (plot_lines > 1){
+      for (i in 2:plot_lines) lines(A[i,], col = colours[i], pch = 16)
+    }
   
-  # Restore default margins:
-  par(mar = c(5, 4, 4, 2) + 0.1)
+    # Create the legend:
+    if (all_sites) leg <- paste("site", 1:nrow(A))
+    else leg <- paste("quantile", quantiles)
+  
+    legend("bottomright", legend = leg, fill = colours[1:nrow(A)],
+           inset = shift, bty = "n")
+    
+    # Restore default margins:
+    par(mar = c(5, 4, 4, 2) + 0.1)
+  }
 }
 
 #' Parameter transformation
