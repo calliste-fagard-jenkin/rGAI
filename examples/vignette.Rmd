@@ -127,9 +127,6 @@ my_spline_GAI <- fit_GAI(start = rep(0, 20), DF = example_data,
 
 # Print the MLEs to show the model has fitted correctly:
 my_spline_GAI$par
-
-### TESTING, REMOVE FROM VIGNETTE:
-plot(my_spline_GAI, all_sites = F, useGGplot = T)
 ```
 If an incorrect number of starting values is given to fit_GAI, an error will 
 be raised, and a printout will indicate the parameter starting values that
@@ -378,7 +375,6 @@ no dependence on asymptotic properties or estimates of the Information matrix.
 # bootstrap resamples we would like to use (R):
 general_fit_bootstrap <- bootstrap(general_fit, R = 1000, refit = F,
                                    alpha = 0.01)
-
 # The more time-consuming bootstrap can be fitted in parallel, with a chosen
 # number of cores. If this is not specified, the default number of cores 
 # will be one less than the number available on the computer, so this must
