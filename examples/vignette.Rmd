@@ -11,11 +11,11 @@ vignette: >
 
 The GAI package is an extension of functionality provided by 
 \href{https://onlinelibrary.wiley.com/doi/full/10.1111/biom.12506}{Dennis
-\textit{et al} (2016)}. The package provides a user interface for calculating a Generalised Abundance Index
-(GAI) for seasonal invertebrates, with multiple options for covariate inclusion,
-seasonal flight patterns and observed count distributions, along with the
-ability to conduct bootstraps to obtain measures uncertainty for estimated
-parameter and GAI values.
+\textit{et al} (2016)}. The package provides a user interface for calculating a
+Generalised Abundance Index (GAI) for seasonal invertebrates, with multiple
+options for covariate inclusion, seasonal flight patterns and observed count
+distributions, along with the ability to conduct bootstraps to obtain measures
+of uncertainty for estimated parameter and GAI values.
 
 This vignette will illustrate the features available within the package by 
 providing an example workflow on simulated data.
@@ -28,7 +28,7 @@ source code must be downloaded from Github: https://github.com/calliste-fagard-j
 ```{R loading, results = 'hide', warning = F}
 #install.packages('devtools')
 library(devtools, quietly = T)
-install_github("calliste-fagard-jenkin/GAI", quiet = T)
+install_github("calliste-fagard-jenkin/GAI", quiet = F)
 library(GAI)
 ```
 
@@ -64,7 +64,7 @@ and 'count' columns must be given these precise names to allow the GAI package
 to recognise them. Missing observations can be listed with an NA entry.
 
 Sites and occasions can have either character or numeric names.  Because 
-of this, the GAI package will assume occasions occured in the order they first
+of this, the GAI package will assume occasions occurred in the order they first
 appear in the data frame. If no observations were collected for any sites on a
 given occasion, this occasion should still be included in the data.frame with 
 NA entries for each site.
@@ -378,14 +378,14 @@ general_fit_bootstrap <- bootstrap(general_fit, R = 1000, refit = F,
 # The more time-consuming bootstrap can be fitted in parallel, with a chosen
 # number of cores. If this is not specified, the default number of cores 
 # will be one less than the number available on the computer, so this must
-# always be specifed if running models on a large server:
+# always be specified if running models on a large server:
 refitting_bootstrap <- bootstrap(general_fit, R = 10, refit = T, parallel = T,
                                  cores = 3, alpha = 0.01)
 ```
 
 
 The bootstraps output contains raw values from each iteration of the estimated
-parameter values, the flight path densities for each site and occasioon, the estimated site totals (site superpopulations), and the average estimated site
+parameter values, the flight path densities for each site and occasion, the estimated site totals (site superpopulations), and the average estimated site
 total. The $1 - \alpha$ confidence intervals are available in the \$par,
 \$sites and \$index elements of the bootstrap output for the parameters,
 individual site totals and average site total, respectively:
