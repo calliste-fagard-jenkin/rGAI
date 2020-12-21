@@ -7,7 +7,7 @@ Author: C. Fagard-Jenkin, E. Dennis
 Maintainer: C. Fagard-Jenkin <cfj2@st-andrews.ac.uk>
 Description: Fitting of the GAI from Dennis et al (2014), with normal mixture, stopover and spline-based seasonal trend models, as well as poisson, negative binomial and zero-inflated count models. Covariates can be fitted to mean brood arrival time, mean brood dispersion and the proportion of the population which finds itself in each brood. The package slightly extends the supplementary materials of the paper to provide flexible model-fitting options and covariate inclusion.
 License: GPL (>= 2)
-Imports: Rcpp (>= 1.0.2), magrittr, splines, mvtnorm, doParallel, reshape2
+Imports: Rcpp (>= 1.0.2), magrittr, splines, mvtnorm, doParallel, reshape2, ggplot2
 LinkingTo: Rcpp
 Encoding: UTF-8
 RoxygenNote: 7.1.1
