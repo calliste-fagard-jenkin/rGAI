@@ -184,11 +184,10 @@ evaluate_stopover <- function(breaks, par, skeleton, DMs = list(), nS){
   #           function. It is not checkled in this function since this would
   #           lead to unnecessary computation time during parameter estimation
   #           with optim.
-  print("in dev version")
   # get parameter values with or without covariates, and apply the links:
   n <- length(breaks)
   nT <- length(breaks) - 1
-  parameter_vals <- get_parameter_values(par, DMs, skeleton, nS*nT)
+  parameter_vals <- get_parameter_values(par, DMs, skeleton, nS * nT)
   means <- parameter_vals$means
   sds <- parameter_vals$sds
   probs <- parameter_vals$probs
@@ -202,7 +201,8 @@ evaluate_stopover <- function(breaks, par, skeleton, DMs = list(), nS){
   components <- rep(1:B, each = n)
   points <- rep(breaks, B)
   
-  print(dim(probs))
+  # Univoltine causes an edge case:
+  if (length(probs) == 1) probs %<>% rep(nS * nT) %>% as.matrix
   
   for (i in 1:nS){
     # since we know the parameter values are the same for all time points for a 
@@ -1440,7 +1440,7 @@ design_matrix <- function(DF, covar_formula){
   return(DM)
 }
 
-lin_predictor <-  function(parameters, DM, check = T){
+lin_predictor <-  function(parameters, DM){
   # purpose : Produces the linear predictor for a parameter, given the covariate
   #           values it depends on, as described by a design matrix
   # inputs  : parameters - The parameters for the covariate relationship
@@ -1451,12 +1451,7 @@ lin_predictor <-  function(parameters, DM, check = T){
   # Multiply DM by the column matrix of covariate parameters to obtain 
   # the linear predictor for the theta parameter of interest:
   parameters <- matrix(parameters, ncol = 1)
-  
-  # Exception handle the matrix multiplication to ensure the correct number 
-  # of parameters has been supplied for the relationship specified by the 
-  # passed formula object:
-  LP <-  try({DM %*% parameters}, silent = T)
-  return(LP)
+  return(DM %*% parameters)
 }
 
 is_time_varying <- function(DM, DF){
@@ -1652,11 +1647,16 @@ get_parameter_values <- function(par, DMs, skeleton, n){
   par %<>% relist(skeleton)
   probs <- 1 # For single brood case
   
+  single_brood_mod <- function(x){
+    if (x %>% dim %>% `==`(1) %>% any) return(t(x))
+    else return(x)
+  }
+  
   # Use the helper function to get the parameter values for the means, 
   # SDs, and weights one by one:
   if (contains_covariates("mu", par, DMs)) means <-
     get_parameter_values_all_rows("mu", par, DMs, length(par$mu)) %>%
-    apply(1, means_link) %>% t
+    apply(1, means_link) %>% t %>% single_brood_mod
   
   # Without covariates, do it manually to save computation time:
   else means <- means_link(par$mu) %>%
@@ -1676,6 +1676,8 @@ get_parameter_values <- function(par, DMs, skeleton, n){
   
   else if (!is.null(par$w)) probs <- probs_link(par$w) %>%
     matrix(nrow = n, ncol = length(par$w) + 1, byrow = T)
+  
+  else probs %<>% matrix(nrow = n, ncol = 1, byrow = T)
   
   return(list(means = means, sds = sds, probs = probs))
 }

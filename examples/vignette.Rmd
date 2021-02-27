@@ -217,6 +217,29 @@ brood_specific_fit <- fit_GAI(start = brood_specific_start,
                               options = brood_specific_options)
 # Checking the MLEs:
 brood_specific_fit$par
+
+# A quick check to show to that models run with the same options for a stopover:
+general_fit_stopover <- fit_GAI(start = c(general_fit_start, 0),
+                                DF = example_data, a_choice = "stopover",
+                                dist_choice = "P", options = general_options)
+
+general_fit_stopover$par
+
+
+brood_specific_stopover <- fit_GAI(start = c(brood_specific_start, 0),
+                                   DF = example_data, a_choice = "stopover",
+                                   dist_choice = "P",
+                                   options = brood_specific_options)
+
+brood_specific_stopover$par
+
+# And of course, we could also fit covariates to the simple univolitine case
+# (although not for weights):
+univ_options <- list(B = 1, sigma_formula = formula(~altitude))
+univoltine_fit <- fit_GAI(start = c(2.2, 1, 0, 0), DF = example_data, 
+                          a_choice =  "stopover", options = univ_options)
+
+univoltine_fit$par
 ```
 
 It should be noted that the GAI package comes with no methods for interpolating 
