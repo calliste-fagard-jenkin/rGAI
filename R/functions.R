@@ -813,7 +813,8 @@ produce_skeleton <- function(a_choice = "mixture", distribution = "P",
 profile_ll <- function(par, obs, skeleton, a_choice = "mixture", 
                        dist_choice = "P",
                        spline_specs = list(df = 10, degree = 3),
-                       N = NULL, returnN = F, DMs = list()){
+                       N = NULL, returnN = F, DMs = list(),
+                       returnA = F){
   # purpose : Evaluates the likelihood of a poisson model, given a choice of
   #           seasonal trend function.
   # inputs  : par          - A vector of estimated parameters for the model
@@ -837,6 +838,8 @@ profile_ll <- function(par, obs, skeleton, a_choice = "mixture",
   #                          matrix a_func instead of the LL
   #           DMs          - A list of design matrices if covariates have been
   #                          included
+  #           returnA      - If TRUE, will return the A matrix as soon as is 
+  #                         possible, without returning anything else
   # output  : A real number, the neg log-likelihood of all the data given the 
   #           model specification and parameters
   
@@ -861,17 +864,23 @@ profile_ll <- function(par, obs, skeleton, a_choice = "mixture",
   # Get N from the specified argument or with a profile likelihood approach:
   if (is.null(N)) N <- y_dot/apply(a_func, 1, sum, na.rm = T)
   else if (length(N) == 1) N %<>% rep(nS)
-  lambda <- a_func*rep(N, nT)
+  lambda <- a_func * rep(N, nT)
   
-  # Evaluate the negative log likelihood:
-  lik <- switch(dist_choice,
-                P = dpois(obs, lambda, log = T),
-                NB = dnbinom(obs, mu = lambda, size = exp(dist_p), log = T),
-                ZIP = dzip(obs, lambda = lambda, psi = plogis(dist_p), log = T))
+  if (returnA) return(a_func)
   
-  # Return the negative log lik for all points:
-  if (returnN) return(list(N = N, a_func = a_func))
-  else lik %>% sum(na.rm = T) %>% `*`(-1) %>% return
+  else{
+  
+    # Evaluate the negative log likelihood:
+    lik <- switch(dist_choice,
+                  P = dpois(obs, lambda, log = T),
+                  NB = dnbinom(obs, mu = lambda, size = exp(dist_p), log = T),
+                  ZIP = dzip(obs, lambda = lambda, psi = plogis(dist_p),
+                             log = T))
+    
+    # Return the negative log lik for all points:
+    if (returnN) return(list(N = N, a_func = a_func))
+    else lik %>% sum(na.rm = T) %>% `*`(-1) %>% return
+  }
 }
 
 check_GAI_inputs <- function(start, obs, a_choice, dist_choice, options,
@@ -2137,9 +2146,13 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
 #' transformed parameter values should be obtained. It is important that the 
 #' names of columns in this data.frame are identical to those that were
 #' specified in the options argument of the fit_GAI function.
+#' @param provide_A If TRUE, will also return the A matrix for the supplied. It
+#' should be noted that the A matrix this function returns is not scaled by site
+#' population totals, since these are unavailable for new data.
+#' points
 #' @return A named vector of parameters, on the parameter-space scale
 #' @export
-transform_output <- function(GAIoutput, DF){
+transform_output <- function(GAIoutput, DF, provide_A = F){
   # purpose : Produces a matrix of parameter outputs, transformed to the 
   #           parameter-space scale, for mixture and stopover models.
   # inputs  : GAIoutput - An object produced by the fit_GAI function, containing
@@ -2180,5 +2193,14 @@ transform_output <- function(GAIoutput, DF){
   # Add in the distributional parameter, if there is one:
   if (dist_choice == "ZIP") output$dist.par <- plogis(par$dist.par)
   else if (dist_choice == "NB") output$dist.par <- exp(par$dist.par)
-  output %>% do.call(what = cbind) %>% return
+  output %<>% do.call(what = cbind)
+  
+  if (provide_A){
+    nT <- ncol(GAIoutput$A); nS <- nrow(DF)
+    A <- profile_ll(GAIoutput$par, matrix(1, nrow = nS, ncol = nT), skeleton,
+                    a_choice, dist_choice, list(), 1, F, DMs, T)
+    output <- list(params = output, A = A)      
+  }
+  
+  return(output)
 }

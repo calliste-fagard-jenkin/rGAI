@@ -492,6 +492,12 @@ be exponentiated, to ensure it is always positive.
 DF_to_transform <- data.frame(altitude = c(-10, 0, 10))
 transform_output(brood_specific_fit, DF_to_transform)
 
+# We can also use this function to get out the a_func matrix for a set of
+# covariate values:
+A <- transform_output(brood_specific_fit, DF_to_transform, provide_A = T)$A
+matplot(t(A), type = 'l', col = c("blue", "darkblue", "darkgrey"),
+        ylab = "Unscaled Flight Path", xlab = "Occasion")
+
 # It's important to include all covariates exactly as they were named in the 
 # call to fit_GAI, otherwise an error will be thrown, giving the name of the 
 # missing covariate.
