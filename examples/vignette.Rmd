@@ -501,9 +501,10 @@ hex values using the 'colours' argument.
 colours <- c("#33FFF9", "#33A8FF", "#4233FF")
 
 # The default behaviour will use quantiles = c(0.05, 0.5, 0.95), and therefore 
-# will not plot all sites individually. It will also use the standard R base
-# graphics colours. The shiftt parameter can be used to shift the legends if 
-# the default value places them incorrectly:
-plot(general_fit, scale_by_N = T, colours = colours,
-     quantiles = c(0.1, 0.5, 0.9), shift = c(-0.45, 0.5))
+# will not plot all sites individually.
+plot(general_fit, scale_by_N = T, quantiles = c(0.01, 0.25, 0.5, 0.75, 0.99))
+
+# For the sake of demonstration, a plot with manual colours, with no scaling:
+plot(brood_specific_fit, scale_by_N = F, quantiles = c(0.001, 0.5, 0.999),
+     colours = colours)
 ```

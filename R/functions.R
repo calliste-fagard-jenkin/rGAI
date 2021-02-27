@@ -2065,7 +2065,7 @@ print.summary.GAI <- function(obj){
 #' @return NULL
 #' @export
 plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
-                     scale_by_N = T, shift = c(-0.25, 0.5), useGGplot = T,
+                     scale_by_N = T,
                      colours = hcl(h = seq(15, 375, length = 11),
                                    l = 65, c = 100)[1:10] %>% rep(10)){
   # purpose : Produces simple plots of the flight path distribution of a GAI
@@ -2086,7 +2086,7 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
   #                       plots instead
   # output  : NULL
   A <- GAIobj$A
-  
+
   # Change the data based on user options:
   if (scale_by_N) A %<>% `*`(rep(GAIobj$N, ncol(A)))
   if (!all_sites) A %<>% apply(2, quantile, probs = quantiles, na.rm = T)
@@ -2096,55 +2096,31 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
   ylab <- "Seasonal flight path"
   if (scale_by_N) ylab %<>% paste("scaled by site total")
   
-  if (useGGplot){
-    require("ggplot2")
-    require("reshape2")
+  require("ggplot2")
+  require("reshape2")
     
-    # Determine the correct label names:
-    toplot <- A %>% t %>% as.data.frame
+  # Determine the correct label names:
+  toplot <- A %>% t %>% as.data.frame
     
-    if (all_sites){
-      lab <- "Site"
-      colnames(toplot) <- 1:ncol(toplot)
-    }
-    
-    else lab <- "Quantile"
-    
-    # Reformat the data for ggplot:
-    occasions <- 1:ncol(A)
-    mes_vars <- colnames(toplot)
-    toplot$occasions <- occasions
-    toplot %<>% melt(id.vars = "occasions", measure.vars = mes_vars)
-    
-    # Produce the plot:
-    ggplot(toplot, aes(x = occasions, y = value)) +
-      geom_line(aes(color = variable)) +
-      scale_color_manual(values = c(colours)) + 
-      ylab(ylab) + xlab("Occasion") +
-      labs(color = lab)
+  if (all_sites){
+    lab <- "Site"
+    colnames(toplot) <- 1:ncol(toplot)
   }
-  
-  else{
-    # Produce the plot for the first row:
-    par(xpd = T, mar = par()$mar + c(0, 0, 0, 8))
-    plot(A[1,], type = 'l', xlab = "Occasion", ylab = ylab, ylim = range(A),
-         col = colours[1], pch = 16)
-  
-    # Add on all the others:
-    if (plot_lines > 1){
-      for (i in 2:plot_lines) lines(A[i,], col = colours[i], pch = 16)
-    }
-  
-    # Create the legend:
-    if (all_sites) leg <- paste("site", 1:nrow(A))
-    else leg <- paste("quantile", quantiles)
-  
-    legend("bottomright", legend = leg, fill = colours[1:nrow(A)],
-           inset = shift, bty = "n")
     
-    # Restore default margins:
-    par(mar = c(5, 4, 4, 2) + 0.1)
-  }
+  else lab <- "Quantile"
+    
+  # Reformat the data for ggplot:
+  occasions <- 1:ncol(A)
+  mes_vars <- colnames(toplot)
+  toplot$occasions <- occasions
+  toplot %<>% melt(id.vars = "occasions", measure.vars = mes_vars)
+    
+  # Produce the plot:
+  ggplot(toplot, aes(x = occasions, y = value)) +
+    geom_line(aes(color = variable)) +
+    scale_color_manual(values = c(colours)) + 
+    ylab(ylab) + xlab("Occasion") +
+    labs(color = lab)
 }
 
 #' Parameter transformation
