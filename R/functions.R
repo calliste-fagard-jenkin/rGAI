@@ -202,7 +202,7 @@ evaluate_stopover <- function(breaks, par, skeleton, DMs = list(), nS){
   components <- rep(1:B, each = n)
   points <- rep(breaks, B)
   
-  print(probs)
+  print(dim(probs))
   
   for (i in 1:nS){
     # since we know the parameter values are the same for all time points for a 
