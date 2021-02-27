@@ -184,7 +184,7 @@ evaluate_stopover <- function(breaks, par, skeleton, DMs = list(), nS){
   #           function. It is not checkled in this function since this would
   #           lead to unnecessary computation time during parameter estimation
   #           with optim.
-  
+  print("in dev version")
   # get parameter values with or without covariates, and apply the links:
   n <- length(breaks)
   nT <- length(breaks) - 1
@@ -201,6 +201,8 @@ evaluate_stopover <- function(breaks, par, skeleton, DMs = list(), nS){
   output <- matrix(NA, nrow = nS, ncol = nT)
   components <- rep(1:B, each = n)
   points <- rep(breaks, B)
+  
+  print(probs)
   
   for (i in 1:nS){
     # since we know the parameter values are the same for all time points for a 
