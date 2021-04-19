@@ -1639,7 +1639,7 @@ contains_covariates <- function(base, par, DMs){
 #' should be found
 #' @return A name dlist containing the Mu, Sigma and W parameters for the 
 #' data points
-get_parameter_values <- function(par, DMs, skeleton, n, debug = F){
+get_parameter_values <- function(par, DMs, skeleton, n){
   # purpose : Returns a list of parameter values given design matrices and
   #           a vector of hyper-parameters given by optim()
   # inputs  : par      - The vector of parameters and hyper-parameters given by
@@ -1671,8 +1671,6 @@ get_parameter_values <- function(par, DMs, skeleton, n, debug = F){
   # Without covariates, do it manually to save computation time:
   else means <- means_link(par$mu) %>%
       matrix(nrow = n, ncol = length(par$mu), byrow = T)
-  
-  if (debug) print(means)#debug
   
   # Standard Deviations:
   if (contains_covariates("sigma", par, DMs)) sds <-
@@ -2163,7 +2161,6 @@ transform_output <- function(GAIoutput, DF, provide_A = F){
   #           DF        - A data.frame that contains a named list of covariate
   #                       values. If null, covariate values are assumed to be
   #                       0, and a warning is produced.
-  print("dev version")
   dist_choice <- GAIoutput$dist_choice
   a_choice <- GAIoutput$a_choice
   
