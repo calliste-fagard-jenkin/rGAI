@@ -2175,7 +2175,7 @@ transform_output <- function(GAIoutput, DF, provide_A = F){
   
   # Get the means, sds, and weights using the same function as the rest of the 
   # package:
-  vals <- get_parameter_values(par, DMs, skeleton, nrow(DF), F)
+  vals <- get_parameter_values(par, DMs, skeleton, nrow(DF))
   
   # For the means, we get the number of means from the skeleton, and then 
   # add the appropriate columns to the output data.frame one by one:
