@@ -116,7 +116,8 @@ mixture_nll <- function(par, obs, skeleton, returnNLL = T, DMs = list()){
   sds <- parameter_vals$sds %>% t %>% as.vector
   probs <- parameter_vals$probs %>% t %>% as.vector
   
-  B <- length(means)/n # the number of broods
+  B <- length(skeleton$mu)
+  
   # if SDs for each brood are the same, replicate so dimensions match:
   if (length(sds) <= length(means)) sds <- rep(sds, length(means)/length(sds))
   
@@ -809,6 +810,7 @@ produce_skeleton <- function(a_choice = "mixture", distribution = "P",
 #' @param returnN if TRUE, returns the vector estimate of N and the matrix
 #' a_func instead of the LL
 #' @param DMs A list of design matrices if covariates have been included
+#' @param returnA If TRUE, will also include the flight pattern densities
 #' @export
 profile_ll <- function(par, obs, skeleton, a_choice = "mixture", 
                        dist_choice = "P",
@@ -853,7 +855,6 @@ profile_ll <- function(par, obs, skeleton, a_choice = "mixture",
                    stopover = evaluate_stopover(breaks,par,skeleton,DMs,nS),
                    mixture = mixture_nll(par, matrix(1:nT,nrow = nS,ncol = nT,
                                                      byrow = T),skeleton,F,DMs))
-  
   y_dot <- apply(obs, 1, sum, na.rm = T)
   
   # The splines function returns a vector, since no covariates are allowed,
@@ -1638,7 +1639,7 @@ contains_covariates <- function(base, par, DMs){
 #' should be found
 #' @return A name dlist containing the Mu, Sigma and W parameters for the 
 #' data points
-get_parameter_values <- function(par, DMs, skeleton, n){
+get_parameter_values <- function(par, DMs, skeleton, n, debug = F){
   # purpose : Returns a list of parameter values given design matrices and
   #           a vector of hyper-parameters given by optim()
   # inputs  : par      - The vector of parameters and hyper-parameters given by
@@ -1670,6 +1671,8 @@ get_parameter_values <- function(par, DMs, skeleton, n){
   # Without covariates, do it manually to save computation time:
   else means <- means_link(par$mu) %>%
       matrix(nrow = n, ncol = length(par$mu), byrow = T)
+  
+  if (debug) print(means)#debug
   
   # Standard Deviations:
   if (contains_covariates("sigma", par, DMs)) sds <-
@@ -2042,12 +2045,12 @@ summary.GAI <- function(GAIobj){
 print.summary.GAI <- function(obj){
   # purpose : Prints the output generated from the summary.GAI function
   cat("Maximum Likelihood Estimates (MLEs):\n\n")
-  print(obj$MLE)
+  obj$MLE %>% signif(4) %>% print
   cat("\n\n")
   
   if(obj["MLE.SE"] %>% is.null %>% `!`){
     cat("MLE Standard Errors:\n\n")
-    print(obj$MLE.SE)
+    obj$MLE.SE %>% signif(4) %>% print
   }
   
   cat("\n\nAkaike's Information Criterion (AIC):", obj$AIC, "\n\n")
@@ -2175,7 +2178,7 @@ transform_output <- function(GAIoutput, DF, provide_A = F){
   
   # Get the means, sds, and weights using the same function as the rest of the 
   # package:
-  vals <- get_parameter_values(par, DMs, skeleton, nrow(DF))
+  vals <- get_parameter_values(par, DMs, skeleton, nrow(DF), F)
   
   # For the means, we get the number of means from the skeleton, and then 
   # add the appropriate columns to the output data.frame one by one:
