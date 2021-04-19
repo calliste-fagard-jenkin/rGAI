@@ -23,7 +23,8 @@ providing an example workflow on simulated data.
 # Installing the Package from Source
 
 In order to install the GAI package from source, the folder containing the
-source code must be downloaded from Github: https://github.com/calliste-fagard-jenkin/GAI
+source code must be downloaded from Github:
+https://github.com/calliste-fagard-jenkin/GAI
 
 ```{R loading, results = 'hide', warning = F}
 #install.packages('devtools')
@@ -218,7 +219,7 @@ brood_specific_fit <- fit_GAI(start = brood_specific_start,
 # Checking the MLEs:
 brood_specific_fit$par
 
-# A quick check to show to that models run with the same options for a stopover:
+# A quick example to show a stopover model with the same options:
 general_fit_stopover <- fit_GAI(start = c(general_fit_start, 0),
                                 DF = example_data, a_choice = "stopover",
                                 dist_choice = "P", options = general_options)
@@ -402,7 +403,7 @@ general_fit_bootstrap <- bootstrap(general_fit, R = 1000, refit = F,
 # number of cores. If this is not specified, the default number of cores 
 # will be one less than the number available on the computer, so this must
 # always be specified if running models on a large server:
-refitting_bootstrap <- bootstrap(general_fit, R = 10, refit = T, parallel = T,
+refitting_bootstrap <- bootstrap(general_fit, R = 10, refit = T, parallel = F,
                                  cores = 3, alpha = 0.01)
 ```
 
@@ -494,10 +495,14 @@ transform_output(brood_specific_fit, DF_to_transform)
 
 # We can also use this function to get out the a_func matrix for a set of
 # covariate values:
-A <- transform_output(brood_specific_fit, DF_to_transform, provide_A = T)$A
+A <- transform_output(general_fit, DF_to_transform, provide_A = T)$A
 matplot(t(A), type = 'l', col = c("blue", "darkblue", "darkgrey"),
         ylab = "Unscaled Flight Path", xlab = "Occasion")
 
+debug_options <- list(B = 3, mu_formula = list(~altitude, ~I(altitude^2) + altitude, ~altitude))
+debug_fit <- fit_GAI(rep(0, 10), example_data, "mixture", "P", debug_options)
+transform_output(debug_fit, data.frame(altitude = c(-10, 0, 10)), provide_A = T)
+    
 # It's important to include all covariates exactly as they were named in the 
 # call to fit_GAI, otherwise an error will be thrown, giving the name of the 
 # missing covariate.

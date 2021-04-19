@@ -1,96 +1,6 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
-//' Takes a vector of numbers on the real line, and maps them to a unique
-//' vector of probabilities that sum to one
-//'
-//' @param x The vector of values on the real line
-//' @return A vector of probabilities that sum to one
-//' @export
-// [[Rcpp::export]]
-NumericVector probs_link(NumericVector x){
-  // purpose : Takes a vector of parameter guesses on the real line and maps
-  //           them to the probability of belonging to any given component
-  // input   : x - The vector of guesses
-  // output  : A vector of probabilities that sum to 1
-  
-  // Apply the link function to all the values:
-  int xLen = x.size();
-  NumericVector linked(xLen);
-  linked = plogis(x);
-  
-  // Create a variable to store the results:
-  NumericVector output(xLen + 1);
-  output[0] = linked[0];
-  
-  // Store the remaining proportion of the prob left to assign:
-  double left(1);
-  left = (1 - linked[0]);
-  
-  // Loop to determine the probability of being in each group:
-  double prob(1);
-  for (int i = 1; i < xLen; i++){
-    prob = left * linked[i];
-    output[i] = prob;
-    left = left - prob;
-  }
-  
-  output[xLen] = left;
-  return output;
-}//probs_link
-
-// @export
-//[[Rcpp::export]]
-NumericVector vector_to_counts(NumericVector x, NumericVector breaks){
-  // purpose : Takes a vector of values, and a vector of breaks and returns
-  //           a vector which indicates how many of the observations are in 
-  //           each of the intervals defined by breaks.
-  // inputs  : x      - the vector of values which we want to count through
-  //           breaks - an ordered (increasing) vector of break points, defining
-  //                    the boundaries of the length(breaks) - 1 intervals.
-  // output  : A vector of length breaks - 1, where each entry is the count in 
-  //           x of values between the ith and ith + 1 breakpoint.
-  
-  // initialise output vector:
-  int intervalNum;
-  int xLen;
-  intervalNum = breaks.size() - 1;
-  xLen = x.size();
-  NumericVector output(intervalNum);
-  
-  for (int i = 0; i < xLen; i++){
-    // for each element in x:
-    for (int j = 0; j < intervalNum; j++){
-      // for each break:
-      if ((x[i] > breaks[j]) & (x[i] <= breaks[j+1])){
-        output[j]++;
-      }
-    }
-  }
-  
-  return output;
-}//vector_to_counts
-
-//' Rescale a numeric vector so that its entries sum to one
-//' 
-//' @param x A numeric vector.
-//' @export
-//[[Rcpp::export]]
-NumericVector sum_to_one(NumericVector x){
-  // purpose : Takes a vector of counts and returns a vector of the same
-  //           length where each entry is the proportion of the total counts
-  //           of that entry in x
-  
-  int xLen = x.size();
-  
-  double sum = 0;
-  for (int i=0; i < xLen; i++){sum = sum + x[i];}
-  
-  NumericVector output(xLen);
-  for (int i=0; i < xLen; i++){output[i] = x[i]/sum;}
-  return output;
-}// sum_to_one
-
 // @export
 //[[Rcpp::export]]
 NumericVector stopover_for_loop(NumericVector betas, NumericVector phi){
@@ -121,31 +31,6 @@ NumericVector stopover_for_loop(NumericVector betas, NumericVector phi){
   
   return a_func;
 }// stopover_for_loop
-
-//' Takes a vector of numbers on the real line, and maps them to a unique
-//' vector of means
-//'
-//' @param x The vector of values on the real line, which tells us how far
-//' the next value is from the previous mean
-//' @return A vector of means
-//' @export
-// [[Rcpp::export]]
-NumericVector means_link(NumericVector means){
-  // purpose : Takes a vector of the type (mean1, diff1, diff2, ...) and turns
-  //           it into a vector of the type (mean1, mean2, means3, ...)
-  // inputs  : means - The vector of inputs
-  // output  : A vector of the same length as means
-  
-  int meansLen = means.size();
-  NumericVector output(meansLen);
-  output[0] = exp(means[0]);
-  
-  for (int i = 1; i < meansLen; i++){
-    output[i] = exp(means[i]) + output[i - 1];
-  }
-  
-  return output;
-}
 
 // @export
 //[[Rcpp::export]]

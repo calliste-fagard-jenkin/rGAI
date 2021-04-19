@@ -2160,6 +2160,7 @@ transform_output <- function(GAIoutput, DF, provide_A = F){
   #           DF        - A data.frame that contains a named list of covariate
   #                       values. If null, covariate values are assumed to be
   #                       0, and a warning is produced.
+  print("dev version")
   dist_choice <- GAIoutput$dist_choice
   a_choice <- GAIoutput$a_choice
   
@@ -2204,3 +2205,47 @@ transform_output <- function(GAIoutput, DF, provide_A = F){
   
   return(output)
 }
+
+#' Probability link function
+#' 
+#' Transforms a vector of numbers on the real line to a vector of weights that
+#' sum to one
+#' @param p A vector of real valued numerics
+#' @return A vector weights that sum to one, distributed according to p
+#' @export
+probs_link <- function(p){
+  p %<>% plogis %>% c(1)
+  t <- 1
+  n1 <- length(p)
+  output <- rep(NA, n1)
+
+  for (i in 1:n1){
+    output[i] <- t * p[i]
+    t <- t * (1 - p[i])
+  }
+  return(output)
+}
+
+#' Mean link function
+#' 
+#' Transforms a vector of numbers on the real line to a vector of means that
+#' have ascending values
+#' @param m A vector of real valued mean parameters
+#' @return A vector ascending mean values, starting at m[1]
+#' @export
+means_link <- function(m){
+  m[2:length(m)] %<>% exp
+  return(cumsum(m))
+}
+
+#' Normalisation function
+#' 
+#' Scales an input vector to have a sum of 1
+#' @param v A vector of real valued parameters
+#' @return A vector of scaled values that add up to 1
+#' @export
+sum_to_one <- function(v){
+  return(v / sum(v))
+}
+
+
