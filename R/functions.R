@@ -2234,8 +2234,7 @@ probs_link <- function(p){
 #' @return A vector ascending mean values, starting at m[1]
 #' @export
 means_link <- function(m){
-  m[2:length(m)] %<>% exp
-  return(cumsum(m))
+  m %>% exp %>% cumsum %>% return
 }
 
 #' Normalisation function
