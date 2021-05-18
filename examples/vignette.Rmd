@@ -489,7 +489,7 @@ be exponentiated, to ensure it is always positive.
 # is to use the transform_output function. This function uses the skeleton and
 # options present in the fitted model object to apply covariate formulas before
 # applying link functions.
-DF_to_transform <- data.frame(altitude = c(0, 1e3, 5e3))
+DF_to_transform <- data.frame(altitude = c(-100, 0, 100))
 transform_output(general_fit, DF_to_transform)
 
 # We can also use this function to get out the a_func matrix for a set of
