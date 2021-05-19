@@ -2146,14 +2146,15 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
 #' @param DF A data.frame containing rows of covariate values for which
 #' transformed parameter values should be obtained. It is important that the 
 #' names of columns in this data.frame are identical to those that were
-#' specified in the options argument of the fit_GAI function.
+#' specified in the options argument of the fit_GAI function. A blank data.frame 
+#' is provided by default, which is assumed in a no covariate model.
 #' @param provide_A If TRUE, will also return the A matrix for the supplied. It
 #' should be noted that the A matrix this function returns is not scaled by site
 #' population totals, since these are unavailable for new data.
 #' points
 #' @return A named vector of parameters, on the parameter-space scale
 #' @export
-transform_output <- function(GAIoutput, DF, provide_A = F){
+transform_output <- function(GAIoutput, DF = data.frame(), provide_A = F){
   # purpose : Produces a matrix of parameter outputs, transformed to the 
   #           parameter-space scale, for mixture and stopover models.
   # inputs  : GAIoutput - An object produced by the fit_GAI function, containing
@@ -2161,9 +2162,19 @@ transform_output <- function(GAIoutput, DF, provide_A = F){
   #           DF        - A data.frame that contains a named list of covariate
   #                       values. If null, covariate values are assumed to be
   #                       0, and a warning is produced.
+  output <- list()
+  
+  # Sometimes users give a data.frame for transformation which is identitcal 
+  # to the dataset (i.e with site, count and occasion columns, still). To avoid
+  # the automatic checks for time-varying covariates by the DM producing
+  # function, these columns are removed:
+  for (col in c("site", "count", "occasion")) DF[col] <- NULL
+  
+  # Extract model settings:
   dist_choice <- GAIoutput$dist_choice
   a_choice <- GAIoutput$a_choice
   
+  # For splines, there are no link functions:
   if (a_choice == "splines") return(GAIoutput$par)
   
   # It's simpler to produce the design matrices again from scratch, 
@@ -2175,11 +2186,16 @@ transform_output <- function(GAIoutput, DF, provide_A = F){
   
   # Get the means, sds, and weights using the same function as the rest of the 
   # package:
-  vals <- get_parameter_values(par, DMs, skeleton, nrow(DF))
+  vals <- get_parameter_values(par, DMs, skeleton, max(c(nrow(DF), 1)))
+  
+  # When only one row is given in the data.frame, the outputs can sometimes
+  # erroneously be given as transposed:
+  if (dim(vals$means) %>% diff %>% `<`(0)) vals$means %<>% t
+  if (dim(vals$sds) %>% diff %>% `<`(0)) vals$sds %<>% t
+  if (dim(vals$probs) %>% diff %>% `<`(0)) vals$probs %<>% t
   
   # For the means, we get the number of means from the skeleton, and then 
   # add the appropriate columns to the output data.frame one by one:
-  output <- list()
   n_mu <- length(skeleton$mu)
   n_si <- length(skeleton$sigma)
   n_w <- length(skeleton$w)
