@@ -1851,6 +1851,14 @@ resample_bootstrap <- function(cl, R, start, obs, skeleton, a_choice,
     }
 }#resample_bootstrap
 
+transform_params <- function(param_vector, GAI_fit){
+  # purpose : Transforms the parameter values of fitted GAI model by using a 
+  #           set of covariate values which has been resampled from the
+  #           dataset
+  GAI_fit$par <- param_vector
+  return(transform_output(GAI_fit, GAI_fit$DF[sample(1:nrow(GAI_fit$DF), 1),]))
+}
+
 #' Bootstrapping for GAI models
 #' 
 #' Produces either a non-parameteric bootstrap by refitting the GAI at each
@@ -1869,13 +1877,15 @@ resample_bootstrap <- function(cl, R, start, obs, skeleton, a_choice,
 #' maximum number of available cores.
 #' @param cores If not NULL, this specifies the number of cores to use, if the
 #' default of using all available cores is undesirable.
+#' @param transform if TRUE, will return a bootstrap on the transformed
+#' parameters, rather than on the link scale
 #' @return A named list with entries "GAI", "N", "A" and "par" giving the 
 #' \code{c(alpha / 2, 1 - alpha / 2)} confidence interval for the GAI, site
 #' superpopulation, seasonal component and estimated parameter values,
 #' respectively.
 #' @export
 bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
-                      cores = NULL){
+                      cores = NULL, transform = T){
   # purpose : Produces bootstrap estimates of the GAI and fitted parameters
   # inputs  : GAI_fit  - An object produced by using fit_GAI for model fitting
   #           R        - The number of resamples to produce for the bootstrap
@@ -1922,8 +1932,10 @@ bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
   
   else {cl <- NULL}
   
-  # Create matrices and arrays to store outputs:
+  # Extract the original fit values:
   MLE <- GAI_fit$par
+  
+  # Create matrices and arrays to store outputs:
   dims <- dim(GAI_fit$obs)
   nS <- dims[1] ; nT <- dims[2]
   parameters <- matrix(NA, nrow = R, ncol = length(MLE))
@@ -1964,6 +1976,11 @@ bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
   N_vals <- result[[2]]
   A_vals <- result[[3]]
   mean_vals <- result[[4]]
+  
+  if (transform){
+    parameters %<>% apply(1, transform_params, GAI_fit = GAI_fit) %>% t
+    colnames(parameters) <- colnames(transform_params(GAI_fit$par, GAI_fit))
+  }
   
   # Calculate the confidence intervals using the results:
   probs <- c(alpha / 2, 1 - alpha / 2)

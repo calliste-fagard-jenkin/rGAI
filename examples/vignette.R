@@ -242,6 +242,7 @@ new_brood_specific_fit$par
 # bootstrap resamples we would like to use (R):
 general_fit_bootstrap <- bootstrap(general_fit, R = 1000, refit = F,
                                    alpha = 0.01)
+
 # The more time-consuming bootstrap can be fitted in parallel, with a chosen
 # number of cores. If this is not specified, the default number of cores 
 # will be one less than the number available on the computer, so this must
@@ -249,15 +250,12 @@ general_fit_bootstrap <- bootstrap(general_fit, R = 1000, refit = F,
 refitting_bootstrap <- bootstrap(general_fit, R = 10, refit = T, parallel = F,
                                  cores = 3, alpha = 0.01)
 
-
 ## ----intervals-----------------------------------------------------------------------------
 # Taking a look at the results of the 'refit the model at each iteration'
 # style of bootstrap:
-refitting_bootstrap$par
+general_fit_bootstrap$par
 
-
-
-## ----summary-------------------------------------------------------------------------------
+# ----summary-------------------------------------------------------------------------------
 # Get a basic summary of the model outputs:
 summary(my_mixture_GAI)
 
