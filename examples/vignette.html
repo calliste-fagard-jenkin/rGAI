@@ -612,27 +612,28 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>Bootstraps in the GAI package are available in two options. The first option will resample sites (and their covariate values) from the observed data set, refitting the model each time it does this. It then extracts the bootstrap distribution of estimated site superpopulation sizes and parameter estimates to create a quantile method confidence interval for these. Because this type of bootstrap can be incredibly computionally expensive, functionality has been provided to do these calculations in parallel.</p>
 <p>The second method of bootstrapping involves resampling parameter values from their asymptotic multivariate normal distribution. This involves a numerical estimate of the Information matrix, and so is only available if a model has been fitted with the hessian = TRUE option in fit_GAI.</p>
 <p>The second type of bootstrap runs considerably faster, and is likely to be the only available option when many sites or covariates have been included, due to computational constrains. However, it should be noted that the first type typically produces intervals with coverage closer to the target, as it has no dependence on asymptotic properties or estimates of the Information matrix.</p>
+<p>Bootstraps can be produced for transformed covariates, for models with and without covariates, in both the refit the model, and the resample the MLEs case.</p>
 <p></p>
 <div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb33-1" data-line-number="1"><span class="co"># To produce a bootstrap, we must specify if we wish to refit the model</span></a>
 <a class="sourceLine" id="cb33-2" data-line-number="2"><span class="co"># (determining the type of bootstrap fitted), as well as the number of</span></a>
 <a class="sourceLine" id="cb33-3" data-line-number="3"><span class="co"># bootstrap resamples we would like to use (R):</span></a>
-<a class="sourceLine" id="cb33-4" data-line-number="4">general_fit_bootstrap &lt;-<span class="st"> </span><span class="kw">bootstrap</span>(general_fit, <span class="dt">R =</span> <span class="dv">1000</span>, <span class="dt">refit =</span> F,</a>
-<a class="sourceLine" id="cb33-5" data-line-number="5">                                   <span class="dt">alpha =</span> <span class="fl">0.01</span>)</a></code></pre></div>
+<a class="sourceLine" id="cb33-4" data-line-number="4">general_fit_bootstrap &lt;-<span class="st"> </span><span class="kw">bootstrap</span>(general_fit, <span class="dt">R =</span> <span class="dv">500</span>, <span class="dt">refit =</span> F,</a>
+<a class="sourceLine" id="cb33-5" data-line-number="5">                                   <span class="dt">alpha =</span> <span class="fl">0.01</span>, <span class="dt">transform =</span> T)</a></code></pre></div>
 <pre><code>## Loading required package: mvtnorm</code></pre>
 <pre><code>## Loading required package: parallel</code></pre>
 <div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb36-1" data-line-number="1"><span class="co"># The more time-consuming bootstrap can be fitted in parallel, with a chosen</span></a>
 <a class="sourceLine" id="cb36-2" data-line-number="2"><span class="co"># number of cores. If this is not specified, the default number of cores </span></a>
 <a class="sourceLine" id="cb36-3" data-line-number="3"><span class="co"># will be one less than the number available on the computer, so this must</span></a>
 <a class="sourceLine" id="cb36-4" data-line-number="4"><span class="co"># always be specified if running models on a large server:</span></a>
-<a class="sourceLine" id="cb36-5" data-line-number="5">refitting_bootstrap &lt;-<span class="st"> </span><span class="kw">bootstrap</span>(general_fit, <span class="dt">R =</span> <span class="dv">10</span>, <span class="dt">refit =</span> T, <span class="dt">parallel =</span> F,</a>
-<a class="sourceLine" id="cb36-6" data-line-number="6">                                 <span class="dt">cores =</span> <span class="dv">3</span>, <span class="dt">alpha =</span> <span class="fl">0.01</span>)</a></code></pre></div>
+<a class="sourceLine" id="cb36-5" data-line-number="5">refitting_bootstrap &lt;-<span class="st"> </span><span class="kw">bootstrap</span>(general_fit, <span class="dt">R =</span> <span class="dv">9</span>, <span class="dt">refit =</span> T, <span class="dt">parallel =</span> T,</a>
+<a class="sourceLine" id="cb36-6" data-line-number="6">                                 <span class="dt">cores =</span> <span class="dv">3</span>, <span class="dt">alpha =</span> <span class="fl">0.01</span>, <span class="dt">transform =</span> T)</a></code></pre></div>
 <p>The bootstraps output contains raw values from each iteration of the estimated parameter values, the flight path densities for each site and occasion, the estimated site totals (site superpopulations), and the average estimated site total. The <span class="math inline">\(1 - \alpha\)</span> confidence intervals are available in the $par, $sites and $index elements of the bootstrap output for the parameters, individual site totals and average site total, respectively:</p>
 <div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb37-1" data-line-number="1"><span class="co"># Taking a look at the results of the 'refit the model at each iteration'</span></a>
 <a class="sourceLine" id="cb37-2" data-line-number="2"><span class="co"># style of bootstrap:</span></a>
 <a class="sourceLine" id="cb37-3" data-line-number="3">refitting_bootstrap<span class="op">$</span>par</a></code></pre></div>
-<pre><code>##            mu1      mu2      mu3     sigma        w1        w2       mu.cov
-## 0.5%  1.372288 2.222844 2.160755 0.5761970 -1.838940 0.7924537 -0.001942200
-## 99.5% 1.458709 2.263964 2.196357 0.6263944 -1.669872 0.9310508  0.003082615</code></pre>
+<pre><code>##           [,1]     [,2]     [,3]     [,4]      [,5]      [,6]
+## 0.5%  4.069241 13.46672 22.24305 1.766466 0.1353585 0.5719715
+## 99.5% 4.262342 13.62510 22.48841 1.856965 0.1569945 0.6147956</code></pre>
 </div>
 <div id="model-outputs" class="section level1">
 <h1>Model Outputs</h1>

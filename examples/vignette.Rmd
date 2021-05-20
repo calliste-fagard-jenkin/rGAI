@@ -399,15 +399,15 @@ without covariates, in both the refit the model, and the resample the MLEs case.
 # To produce a bootstrap, we must specify if we wish to refit the model
 # (determining the type of bootstrap fitted), as well as the number of
 # bootstrap resamples we would like to use (R):
-general_fit_bootstrap <- bootstrap(general_fit, R = 1000, refit = F,
+general_fit_bootstrap <- bootstrap(general_fit, R = 500, refit = F,
                                    alpha = 0.01, transform = T)
 
 # The more time-consuming bootstrap can be fitted in parallel, with a chosen
 # number of cores. If this is not specified, the default number of cores 
 # will be one less than the number available on the computer, so this must
 # always be specified if running models on a large server:
-refitting_bootstrap <- bootstrap(general_fit, R = 10, refit = T, parallel = F,
-                                 cores = 3, alpha = 0.01, transform = F)
+refitting_bootstrap <- bootstrap(general_fit, R = 9, refit = T, parallel = T,
+                                 cores = 3, alpha = 0.01, transform = T)
 ```
 
 
