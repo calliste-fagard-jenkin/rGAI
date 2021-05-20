@@ -1851,12 +1851,14 @@ resample_bootstrap <- function(cl, R, start, obs, skeleton, a_choice,
     }
 }#resample_bootstrap
 
-transform_params <- function(param_vector, GAI_fit){
+transform_params <- function(param_vector, GAI_fit, use_all){
   # purpose : Transforms the parameter values of fitted GAI model by using a 
   #           set of covariate values which has been resampled from the
   #           dataset
   GAI_fit$par <- param_vector
-  return(transform_output(GAI_fit, GAI_fit$DF[sample(1:nrow(GAI_fit$DF), 1),]))
+  if (use_all) DF <- GAI_fit$DF # If refitting, use the data covariate values
+  else DF <- GAI_fit$DF[sample(1:nrow(GAI_fit$DF), 1),] # else sample one set
+  transform_output(GAI_fit, DF) %>% apply(2, mean) %>% return
 }
 
 #' Bootstrapping for GAI models
@@ -1978,8 +1980,11 @@ bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
   mean_vals <- result[[4]]
   
   if (transform){
-    parameters %<>% apply(1, transform_params, GAI_fit = GAI_fit) %>% t
-    colnames(parameters) <- colnames(transform_params(GAI_fit$par, GAI_fit))
+    parameters %<>% apply(1, transform_params, GAI_fit = GAI_fit,
+                          use_all = refit) %>% t
+    
+    colnames(parameters) <-
+      colnames(transform_params(GAI_fit$par, GAI_fit, F))
   }
   
   # Calculate the confidence intervals using the results:
@@ -2190,6 +2195,7 @@ transform_output <- function(GAIoutput, DF = data.frame(), provide_A = F){
   # Extract model settings:
   dist_choice <- GAIoutput$dist_choice
   a_choice <- GAIoutput$a_choice
+  nT <- ncol(GAIoutput$obs)
   
   # For splines, there are no link functions:
   if (a_choice == "splines") return(GAIoutput$par)
@@ -2207,9 +2213,9 @@ transform_output <- function(GAIoutput, DF = data.frame(), provide_A = F){
   
   # When only one row is given in the data.frame, the outputs can sometimes
   # erroneously be given as transposed:
-  if (dim(vals$means) %>% diff %>% `<`(0)) vals$means %<>% t
-  if (dim(vals$sds) %>% diff %>% `<`(0)) vals$sds %<>% t
-  if (dim(vals$probs) %>% diff %>% `<`(0)) vals$probs %<>% t
+  if ((dim(vals$means) %>% diff %>% `<`(0)) & nrow(DF) == 1) vals$means %<>% t
+  if ((dim(vals$sds) %>% diff %>% `<`(0)) & nrow(DF) == 1) vals$sds %<>% t
+  if ((dim(vals$probs) %>% diff %>% `<`(0)) & nrow(DF) == 1) vals$probs %<>% t
   
   # For the means, we get the number of means from the skeleton, and then 
   # add the appropriate columns to the output data.frame one by one:
