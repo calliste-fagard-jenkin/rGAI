@@ -1,4 +1,4 @@
-#' GAI: Generalised Abundance Index fitting for seasonal invertibrates, with
+#' rGAI: Generalised Abundance Index fitting for seasonal invertibrates, with
 #' covariates
 #'
 #' Fitting of the GAI from Dennis et al (2016), with normal mixture, stopover
@@ -14,8 +14,8 @@
 #' Bootstraps can be used to produce confidence interval estimates of the 
 #' abundance index and parameter values.
 #' @author C. Fagard-Jenkin, based on work by E. Dennis, et al.
-#' @name GAI
-#' @useDynLib GAI
+#' @name rGAI
+#' @useDynLib rGAI
 #' @importFrom Rcpp sourceCpp
 #' @importFrom splines bs
 #' @importFrom mvtnorm rmvnorm

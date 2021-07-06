@@ -1,5 +1,5 @@
 ---
-title: "GAI vignette"
+title: "rGAI vignette"
 output: rmarkdown::html_vignette
 extra_dependencies: ["xcolor", "hyperref"]
 vignette: >
@@ -7,9 +7,9 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
-# Introduction to the GAI package
+# Introduction to the rGAI package
 
-The GAI package is an extension of functionality provided by 
+The rGAI package is an extension of functionality provided by 
 \href{https://onlinelibrary.wiley.com/doi/full/10.1111/biom.12506}{Dennis
 \textit{et al} (2016)}. The package provides a user interface for calculating a
 Generalised Abundance Index (GAI) for seasonal invertebrates, with multiple
@@ -22,14 +22,14 @@ providing an example workflow on simulated data.
 
 # Installing the Package from Source
 
-In order to install the GAI package from source, the folder containing the
+In order to install the rGAI package from source, the folder containing the
 source code must be downloaded from Github:
 https://github.com/calliste-fagard-jenkin/GAI
 
 ```{R loading, results = 'hide', warning = F}
 #library(devtools, quietly = T)
 #install_github("calliste-fagard-jenkin/GAI", quiet = F)
-library(GAI)
+library(rGAI)
 ```
 
 # Preparing Data for the GAI Package
@@ -398,7 +398,9 @@ without covariates, in both the refit the model, and the resample the MLEs case.
 ```{R bootstrap, warnings = F}
 # To produce a bootstrap, we must specify if we wish to refit the model
 # (determining the type of bootstrap fitted), as well as the number of
-# bootstrap resamples we would like to use (R):
+# bootstrap resamples we would like to use (R). The transform = T argument
+# can be used to produce bootstraps on the parameter-scale, rather than 
+# the link-scale:
 general_fit_bootstrap <- bootstrap(general_fit, R = 500, refit = F,
                                    alpha = 0.01, transform = T)
 
@@ -406,7 +408,7 @@ general_fit_bootstrap <- bootstrap(general_fit, R = 500, refit = F,
 # number of cores. If this is not specified, the default number of cores 
 # will be one less than the number available on the computer, so this must
 # always be specified if running models on a large server:
-refitting_bootstrap <- bootstrap(general_fit, R = 9, refit = T, parallel = T,
+refitting_bootstrap <- bootstrap(general_fit, R = 9, refit = T, parallel = F,
                                  cores = 3, alpha = 0.01, transform = T)
 ```
 
@@ -421,7 +423,6 @@ individual site totals and average site total, respectively:
 # Taking a look at the results of the 'refit the model at each iteration'
 # style of bootstrap:
 refitting_bootstrap$par
-
 ```
 
 # Model Outputs
@@ -492,12 +493,17 @@ The transform_output function within the GAI package uses model settings stored
 in the fitted model object to apply these link functions automatically, making
 sure that the effect of covariates has also been taken into account.
 ```{R backtransform}
+# The easiest way to obtain transformed parameter values on the correct scale
+# is to use the transform_output function. This function uses the skeleton and
+# options present in the fitted model object to apply covariate formulas before
+# applying link functions.
+
 # We can create a data.frame with custom covariate values, or reuse values that
 # we observed during the survey:
 DF_to_transform <- data.frame(altitude = c(-100, 0, 100))
 DF_to_transform <- general_fit$DF[1:3,]
 
-# The transfor_output function deals with all the covariate formulas and link
+# The transform_output function deals with all the covariate formulas and link
 # functions by using the information contained in the fitted model object:
 transform_output(general_fit, DF_to_transform)
 

@@ -1,10 +1,10 @@
-## ----loading, results = 'hide', warning = F------------------------------------------------
+## ----loading, results = 'hide', warning = F-----------------------------------------------------------------------------
 #library(devtools, quietly = T)
 #install_github("calliste-fagard-jenkin/GAI", quiet = F)
-library(GAI)
+library(rGAI)
 
 
-## ----data, fig.width = 7, fig.height = 5---------------------------------------------------
+## ----data, fig.width = 7, fig.height = 5--------------------------------------------------------------------------------
 # For the pipe operator:
 library(magrittr)
 data("example_data")
@@ -22,7 +22,7 @@ test_data %>% apply(2, mean, na.rm = T) %>%
        xlab = 'Week', ylab = 'Observed count, averaged across all sites')
 
 
-## ----fitting-------------------------------------------------------------------------------
+## ----fitting------------------------------------------------------------------------------------------------------------
 # We can load the true parameter values of the simulated data set from the 
 # GAI package, to more easily find starting parameter values for this example:
 data("example_par")
@@ -61,7 +61,7 @@ my_spline_GAI <- fit_GAI(start = rep(0, 20), DF = example_data,
 my_spline_GAI$par
 
 
-## ----mistake-------------------------------------------------------------------------------
+## ----mistake------------------------------------------------------------------------------------------------------------
 # We cut off some of our starting parameters on purpose, to cause the exception
 # to be raised:
 try({my_mixture_GAI <- fit_GAI(start = example_par[1:3], DF = example_data,
@@ -70,7 +70,7 @@ try({my_mixture_GAI <- fit_GAI(start = example_par[1:3], DF = example_data,
                                hessian = T)}, silent = T)
 
 
-## ----covariates----------------------------------------------------------------------------
+## ----covariates---------------------------------------------------------------------------------------------------------
 # To specify a formula which will be identical for each brood, 
 general_options <- list(B = 3, shared_sigma = T,
                         mu_formula = formula(~altitude))
@@ -140,7 +140,7 @@ univoltine_fit <- fit_GAI(start = c(2.2, 1, 0, 0), DF = example_data,
 univoltine_fit$par
 
 
-## ----covErrors-----------------------------------------------------------------------------
+## ----covErrors----------------------------------------------------------------------------------------------------------
 example_NA <- example_time_varying <- example_data
 
 # Turn roughly 5% of our altitude data to NA values:
@@ -164,7 +164,7 @@ error_fit <- try(fit_GAI(start = general_fit_start, DF = example_time_varying,
 
 
 
-## ----transform1, fig.width = 7, fig.height = 5---------------------------------------------
+## ----transform1, fig.width = 7, fig.height = 5--------------------------------------------------------------------------
 # Let's produce a slightly 'annotated' version of the plot of observed counts
 # we had before. We'll add in some lines where we think the mean brood arrival
 # times are, and add in horizontal lines to try to estimate thw standard 
@@ -205,7 +205,7 @@ w_guesses <- c(4.6 - plot.base, 21.3 - plot.base, 8 - plot.base) %>%
   sum_to_one
 
 
-## ----transform2----------------------------------------------------------------------------
+## ----transform2---------------------------------------------------------------------------------------------------------
 # We create a list of starting values for parameters with the same structure 
 # as the options argument for fit_GAI:
 my_starting_guesses <- list(mu = mu_guesses, sigma = sigma_guesses,
@@ -236,27 +236,25 @@ new_brood_specific_fit <- fit_GAI(start = new_brood_specific_start,
 new_brood_specific_fit$par
 
 
-## ----bootstrap, warnings = F---------------------------------------------------------------
+## ----bootstrap, warnings = F--------------------------------------------------------------------------------------------
 # To produce a bootstrap, we must specify if we wish to refit the model
 # (determining the type of bootstrap fitted), as well as the number of
 # bootstrap resamples we would like to use (R):
-general_fit_bootstrap <- bootstrap(general_fit, R = 100, refit = F,
-                                   alpha = 0.01)
+general_fit_bootstrap <- bootstrap(general_fit, R = 500, refit = F,
+                                   alpha = 0.01, transform = T)
 
 # The more time-consuming bootstrap can be fitted in parallel, with a chosen
 # number of cores. If this is not specified, the default number of cores 
 # will be one less than the number available on the computer, so this must
 # always be specified if running models on a large server:
-refitting_bootstrap <- bootstrap(general_fit, R = 9, refit = T, parallel = F,
-                                 cores = 3, alpha = 0.01)
-
-## ----intervals-----------------------------------------------------------------------------
+refitting_bootstrap <- bootstrap(general_fit, R = 9, refit = T, parallel = T,
+                                 cores = 3, alpha = 0.01, transform = T)
+## ----intervals----------------------------------------------------------------------------------------------------------
 # Taking a look at the results of the 'refit the model at each iteration'
 # style of bootstrap:
-general_fit_bootstrap$par
 refitting_bootstrap$par
 
-# ----summary-------------------------------------------------------------------------------
+## ----summary------------------------------------------------------------------------------------------------------------
 # Get a basic summary of the model outputs:
 summary(my_mixture_GAI)
 
@@ -265,19 +263,20 @@ summary(my_mixture_GAI)
 AIC(my_mixture_GAI)
 
 
-## ----backtransform-------------------------------------------------------------------------
+## ----backtransform------------------------------------------------------------
+# The easiest way to obtain transformed parameter values on the correct scale
+# is to use the transform_output function. This function uses the skeleton and
+# options present in the fitted model object to apply covariate formulas before
+# applying link functions.
+
 # We can create a data.frame with custom covariate values, or reuse values that
 # we observed during the survey:
-DF_to_transform <- data.frame(altitude = c(-100, 0, 100, 200))
-DF_to_transform <- general_fit$DF[1:10,]
+DF_to_transform <- data.frame(altitude = c(-100, 0, 100))
+DF_to_transform <- general_fit$DF[1:3,]
 
-# The transfor_output function deals with all the covariate formulas and link
+# The transform_output function deals with all the covariate formulas and link
 # functions by using the information contained in the fitted model object:
 transform_output(general_fit, DF_to_transform)
-
-# When no covariates were included in the model, a blank data.frame, or no 
-# data.frame at all can be used to only provide the transformed values:
-transform_output(my_mixture_GAI)
 
 # We can also use this function to get out the a_func matrix for a set of
 # covariate values:
@@ -294,7 +293,7 @@ try(transform_output(brood_specific_fit, data.frame(altiitude = c(-10, 0, 10))))
 try(transform_output(brood_specific_fit, data.frame(altitude = c(NA, 0, 10))))
 
 
-## ----plotting, fig.width = 7, fig.height = 5-----------------------------------------------
+## ----plotting, fig.width = 7, fig.height = 5----------------------------------------------------------------------------
 colours <- c("#33FFF9", "#33A8FF", "#4233FF")
 
 # The default behaviour will use quantiles = c(0.05, 0.5, 0.95), and therefore 

@@ -9,8 +9,6 @@
   all_sites = F,
   quantiles = c(0.05, 0.5, 0.95),
   scale_by_N = T,
-  shift = c(-0.25, 0.5),
-  useGGplot = T,
   colours = hcl(h = seq(15, 375, length = 11), l = 65, c = 100)[1:10] \%>\% rep(10)
 )
 }
@@ -27,15 +25,15 @@ be used to produce a curve. Defaults to c(0.05, 0.5, 0.95)}
 \item{scale_by_N}{If TRUE, then the seasonal flight component for each site
 will be scaled by that site's estimated site total. Defaults to TRUE.}
 
+\item{colours}{A list of colour values to be used for plotting different
+curves. Defaults to the GGplot default 10 colour palette repeated 10 times to
+accommodate up to 100 sites (even when ggplot is not used)}
+
 \item{shift}{An optional parameter which can be used to shift the location
 of the key when using base graphics, as this can often be misplaced.}
 
 \item{useGGplot}{If TRUE, will use GGplot to produce the graphics instead of
 the standard base R graphics}
-
-\item{colours}{A list of colour values to be used for plotting different
-curves. Defaults to the GGplot default 10 colour palette repeated 10 times to
-accommodate up to 100 sites (even when ggplot is not used)}
 }
 \description{
 Prints the flight path curves of a fitted GAI model with options to scale

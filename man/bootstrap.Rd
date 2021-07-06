@@ -10,7 +10,8 @@ bootstrap(
   refit = T,
   alpha = 0.05,
   parallel = T,
-  cores = NULL
+  cores = NULL,
+  transform = T
 )
 }
 \arguments{
@@ -32,6 +33,9 @@ maximum number of available cores.}
 
 \item{cores}{If not NULL, this specifies the number of cores to use, if the
 default of using all available cores is undesirable.}
+
+\item{transform}{if TRUE, will return a bootstrap on the transformed
+parameters, rather than on the link scale}
 }
 \value{
 A named list with entries "GAI", "N", "A" and "par" giving the 

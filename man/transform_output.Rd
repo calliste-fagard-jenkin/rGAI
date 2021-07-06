@@ -4,7 +4,7 @@
 \alias{transform_output}
 \title{Parameter transformation}
 \usage{
-transform_output(GAIoutput, DF)
+transform_output(GAIoutput, DF = data.frame(), provide_A = F)
 }
 \arguments{
 \item{GAIoutput}{The output of the fit_GAI function, a fitted model}
@@ -13,6 +13,11 @@ transform_output(GAIoutput, DF)
 transformed parameter values should be obtained. It is important that the 
 names of columns in this data.frame are identical to those that were
 specified in the options argument of the fit_GAI function.}
+
+\item{provide_A}{If TRUE, will also return the A matrix for the supplied. It
+should be noted that the A matrix this function returns is not scaled by site
+population totals, since these are unavailable for new data.
+points}
 }
 \value{
 A named vector of parameters, on the parameter-space scale
