@@ -24,7 +24,7 @@ providing an example workflow on simulated data.
 
 In order to install the rGAI package from source, the folder containing the
 source code must be downloaded from Github:
-https://github.com/calliste-fagard-jenkin/GAI
+https://github.com/calliste-fagard-jenkin/rGAI
 
 ```{R loading, results = 'hide', warning = F}
 #library(devtools, quietly = T)
