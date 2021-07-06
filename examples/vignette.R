@@ -1,6 +1,6 @@
 ## ----loading, results = 'hide', warning = F-----------------------------------------------------------------------------
 #library(devtools, quietly = T)
-#install_github("calliste-fagard-jenkin/GAI", quiet = F)
+#install_github("calliste-fagard-jenkin/rGAI", quiet = F)
 library(rGAI)
 
 
