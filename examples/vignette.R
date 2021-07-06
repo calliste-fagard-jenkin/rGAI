@@ -1,7 +1,7 @@
 ## ----loading, results = 'hide', warning = F-----------------------------------------------------------------------------
 #library(devtools, quietly = T)
 #install_github("calliste-fagard-jenkin/GAI", quiet = F)
-library(GAI)
+library(rGAI)
 
 
 ## ----data, fig.width = 7, fig.height = 5--------------------------------------------------------------------------------
@@ -240,22 +240,19 @@ new_brood_specific_fit$par
 # To produce a bootstrap, we must specify if we wish to refit the model
 # (determining the type of bootstrap fitted), as well as the number of
 # bootstrap resamples we would like to use (R):
-general_fit_bootstrap <- bootstrap(general_fit, R = 1000, refit = F,
-                                   alpha = 0.01)
+general_fit_bootstrap <- bootstrap(general_fit, R = 500, refit = F,
+                                   alpha = 0.01, transform = T)
+
 # The more time-consuming bootstrap can be fitted in parallel, with a chosen
 # number of cores. If this is not specified, the default number of cores 
 # will be one less than the number available on the computer, so this must
 # always be specified if running models on a large server:
-refitting_bootstrap <- bootstrap(general_fit, R = 10, refit = T, parallel = F,
-                                 cores = 3, alpha = 0.01)
-
-
+refitting_bootstrap <- bootstrap(general_fit, R = 9, refit = T, parallel = T,
+                                 cores = 3, alpha = 0.01, transform = T)
 ## ----intervals----------------------------------------------------------------------------------------------------------
 # Taking a look at the results of the 'refit the model at each iteration'
 # style of bootstrap:
 refitting_bootstrap$par
-
-
 
 ## ----summary------------------------------------------------------------------------------------------------------------
 # Get a basic summary of the model outputs:
@@ -266,12 +263,19 @@ summary(my_mixture_GAI)
 AIC(my_mixture_GAI)
 
 
-## ----backtransform------------------------------------------------------------------------------------------------------
+## ----backtransform------------------------------------------------------------
 # The easiest way to obtain transformed parameter values on the correct scale
 # is to use the transform_output function. This function uses the skeleton and
 # options present in the fitted model object to apply covariate formulas before
 # applying link functions.
-DF_to_transform <- data.frame(altitude = c(0, 1e3, 5e3))
+
+# We can create a data.frame with custom covariate values, or reuse values that
+# we observed during the survey:
+DF_to_transform <- data.frame(altitude = c(-100, 0, 100))
+DF_to_transform <- general_fit$DF[1:3,]
+
+# The transform_output function deals with all the covariate formulas and link
+# functions by using the information contained in the fitted model object:
 transform_output(general_fit, DF_to_transform)
 
 # We can also use this function to get out the a_func matrix for a set of

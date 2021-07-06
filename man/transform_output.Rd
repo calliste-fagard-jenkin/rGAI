@@ -4,7 +4,7 @@
 \alias{transform_output}
 \title{Parameter transformation}
 \usage{
-transform_output(GAIoutput, DF, provide_A = F)
+transform_output(GAIoutput, DF = data.frame(), provide_A = F)
 }
 \arguments{
 \item{GAIoutput}{The output of the fit_GAI function, a fitted model}
