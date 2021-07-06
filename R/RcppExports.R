@@ -2,14 +2,10 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 stopover_for_loop <- function(betas, phi) {
-    .Call('_GAI_stopover_for_loop', PACKAGE = 'GAI', betas, phi)
+    .Call('_rGAI_stopover_for_loop', PACKAGE = 'rGAI', betas, phi)
 }
 
 weightedSelection <- function(x, probs) {
-    .Call('_GAI_weightedSelection', PACKAGE = 'GAI', x, probs)
-}
-
-rcpp_hello_world <- function() {
-    .Call('_GAI_rcpp_hello_world', PACKAGE = 'GAI')
+    .Call('_rGAI_weightedSelection', PACKAGE = 'rGAI', x, probs)
 }
 

@@ -13,7 +13,8 @@ profile_ll(
   spline_specs = list(df = 10, degree = 3),
   N = NULL,
   returnN = F,
-  DMs = list()
+  DMs = list(),
+  returnA = F
 )
 }
 \arguments{
@@ -42,6 +43,8 @@ or integer.}
 a_func instead of the LL}
 
 \item{DMs}{A list of design matrices if covariates have been included}
+
+\item{returnA}{If TRUE, will also include the flight pattern densities}
 }
 \description{
 A function which evaluations the profile negative log likelihood of our

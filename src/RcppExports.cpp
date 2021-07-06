@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 // stopover_for_loop
 NumericVector stopover_for_loop(NumericVector betas, NumericVector phi);
-RcppExport SEXP _GAI_stopover_for_loop(SEXP betasSEXP, SEXP phiSEXP) {
+RcppExport SEXP _rGAI_stopover_for_loop(SEXP betasSEXP, SEXP phiSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -19,7 +19,7 @@ END_RCPP
 }
 // weightedSelection
 NumericVector weightedSelection(NumericVector x, NumericVector probs);
-RcppExport SEXP _GAI_weightedSelection(SEXP xSEXP, SEXP probsSEXP) {
+RcppExport SEXP _rGAI_weightedSelection(SEXP xSEXP, SEXP probsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -29,25 +29,14 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// rcpp_hello_world
-List rcpp_hello_world();
-RcppExport SEXP _GAI_rcpp_hello_world() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(rcpp_hello_world());
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_GAI_stopover_for_loop", (DL_FUNC) &_GAI_stopover_for_loop, 2},
-    {"_GAI_weightedSelection", (DL_FUNC) &_GAI_weightedSelection, 2},
-    {"_GAI_rcpp_hello_world", (DL_FUNC) &_GAI_rcpp_hello_world, 0},
+    {"_rGAI_stopover_for_loop", (DL_FUNC) &_rGAI_stopover_for_loop, 2},
+    {"_rGAI_weightedSelection", (DL_FUNC) &_rGAI_weightedSelection, 2},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_GAI(DllInfo *dll) {
+RcppExport void R_init_rGAI(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }
