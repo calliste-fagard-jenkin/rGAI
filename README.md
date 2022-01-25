@@ -46,6 +46,6 @@ my_mixture_GAI$par
 # plotted points at each point in time to be scaled by estimated site population totals. 
 # The quantiles option allows us to select which quantiles of the variation across sites
 # we which to plot at each point in time:
-plot(general_fit, scale_by_N = T, quantiles = c(0.01, 0.25, 0.5, 0.75, 0.99))
+plot(my_mixture_GAI, scale_by_N = T, quantiles = c(0.01, 0.25, 0.5, 0.75, 0.99))
 
 ```
