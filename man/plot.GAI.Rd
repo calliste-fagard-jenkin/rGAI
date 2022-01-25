@@ -40,3 +40,13 @@ Prints the flight path curves of a fitted GAI model with options to scale
 by estimated site total, and avoid plotting all sites by smoothing through
 results for each sites by taking a given quantile at each time point
 }
+\examples{
+# A plot with default settings:
+fit_GAI(c(0, 0), example_data, "mixture") \%>\% plot
+
+# A plot with custom quantiles:
+fit_GAI(c(0, 0), example_data, "mixture") \%>\% plot(quantiles = c(0.01, 0.99))
+
+# A plot with quantities not scaled by site totals:
+fit_GAI(c(0, 0), example_data, "mixture") \%>\% plot(scale_by_N = F)
+}

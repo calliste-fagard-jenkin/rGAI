@@ -71,13 +71,41 @@ process of 'refit-the-model' bootstraps}
 \item{method}{A character for the method which should be used to find MLEs.
 See optim documentation for options and further detail. SANN (simulated 
 annealing) can be a good method of fine-tuning starting points, if one is 
-afraid their MLEs are caught in a local maxima.}
+afraid their MLEs are caught in a local maximum.}
 }
 \value{
-a fitted optim object
+The output of the `fit_GAI` function is a list with a few important
+elements. The `par` element gives named estimates of the MLEs for the model
+parameters, with `value` giving the value of the negative log likelihood
+evaluated at the MLEs. `counts`, `convergence`, `message` and `hessian`
+are all standard outputs given by the `optim` function with details on the
+numerical process of estimating the MLEs. `spline_specs` contains the
+user-specified options for fitting splines, and will be an empty list for
+mixture and stopover models. `dist_choice` and `a_choice` contain the count
+distribution and flight path distributions, respectively. `skeleton` contains
+ the skeleton list of parameter values that the package uses to fit the
+ model, with `options` being the list of options passed to `fit_GAI`.
+ `maxiter` refers to the maximum number of iterations used to estimate the
+ MLEs of ZIP and NB models. `A` and `N` contain the matrix of estimated
+ seasonal densities at each site and occasion, and the vector of estimated
+ site totals, respectively. `DMs` contains the list of design matrices used
+ by the rGAI package to include the selected covariate formulas in the model.
+ `obs` contains the count observations in matrix form, with sites as rows and
+ occasions as columns. This is the same format as for `A`. `DF` contains the
+ original `data.frame` supplied to `fit_GAI`, and finally, `tol`
+ specififies the stopping condition used for the model (an epsilon such that 
+ during an iterative process for fitting a ZIP or NB model, a difference of
+ less than epsilon in the negative log likelihood between two iterations
+ causes the process to terminate).
 }
 \description{
 Fits the GAI model to a set of data, with a choice of normal, stopover or
 spline fits for the seasonal arrival times, as well as poisson, zero-inflated
 poisson, or negative binomially distribted count observations.
+}
+\examples{
+fit_GAI(rep(0, 3), example_data, a_choice = "stopover")
+fit_GAI(rep(0, 6), example_data, a_choice = "mixture", options = list(B = 3))
+fit_GAI(rep(0, 20), example_data, a_choice = "splines", options = list(df = 20, degree = 3))
+fit_GAI(rep(0, 5), example_data, a_choice = "mixture", options = list(B = 2, shared_sigma = F))
 }

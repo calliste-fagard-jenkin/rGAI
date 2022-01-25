@@ -981,11 +981,11 @@ check_GAI_inputs <- function(start, obs, a_choice, dist_choice, options,
 #'  during an iterative process for fitting a ZIP or NB model, a difference of
 #'  less than epsilon in the negative log likelihood between two iterations
 #'  causes the process to terminate).
-#'  @examples
-#'  fit_GAI(rep(0, 3), example_data, a_choice = "stopover")
-#'  fit_GAI(rep(0, 6), example_data, a_choice = "mixture", options = list(B = 3))
-#'  fit_GAI(rep(0, 20), example_data, a_choice = "splines", options = list(df = 20, degree = 3))
-#'  fit_GAI(rep(0, 5), example_data, a_choice = "mixture", options = list(B = 2, shared_sigma = F))
+#' @examples
+#' fit_GAI(rep(0, 3), example_data, a_choice = "stopover")
+#' fit_GAI(rep(0, 6), example_data, a_choice = "mixture", options = list(B = 3))
+#' fit_GAI(rep(0, 20), example_data, a_choice = "splines", options = list(df = 20, degree = 3))
+#' fit_GAI(rep(0, 5), example_data, a_choice = "mixture", options = list(B = 2, shared_sigma = F))
 #' @export
 fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
                     options = list(), tol = 1e-3, maxiter = 1e3,
@@ -1371,6 +1371,7 @@ transform_starting_values <- function(starting_values, a_choice, dist_choice,
 #' well as a reordered version of the data.frame so that the rows match the
 #' matrix output.
 #' @return A matrix of counts, with rows as sites and columns as occasions.
+#' @examples extract_counts(example_data)
 #' @export
 extract_counts <- function(data_frame, checks = T, returnDF = T){
   # purpose : Extracts from a data_frame the matrix of observed counts
@@ -2137,6 +2138,15 @@ print.summary.GAI <- function(obj){
 #' @param useGGplot If TRUE, will use GGplot to produce the graphics instead of
 #' the standard base R graphics
 #' @return NULL
+#' @examples 
+#' # A plot with default settings:
+#' fit_GAI(c(0, 0), example_data, "mixture") %>% plot
+#' 
+#' # A plot with custom quantiles:
+#' fit_GAI(c(0, 0), example_data, "mixture") %>% plot(quantiles = c(0.01, 0.99))
+#' 
+#' # A plot with quantities not scaled by site totals:
+#' fit_GAI(c(0, 0), example_data, "mixture") %>% plot(scale_by_N = F)
 #' @export
 plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
                      scale_by_N = T,
@@ -2213,7 +2223,9 @@ plot.GAI <- function(GAIobj, all_sites = F, quantiles = c(0.05, 0.5, 0.95),
 #' population totals, since these are unavailable for new data.
 #' points
 #' @return A named vector of parameters, on the parameter-space scale
-#' @export
+#' @examples 
+#' fit_GAI(c(0, 0), example_data, "mixture") %>% transform_output(DF = example_data[1, ])
+#' @export 
 transform_output <- function(GAIoutput, DF = data.frame(), provide_A = F){
   # purpose : Produces a matrix of parameter outputs, transformed to the 
   #           parameter-space scale, for mixture and stopover models.
@@ -2289,6 +2301,7 @@ transform_output <- function(GAIoutput, DF = data.frame(), provide_A = F){
 #' sum to one
 #' @param p A vector of real valued numerics
 #' @return A vector weights that sum to one, distributed according to p
+#' @examples probs_link(c(-1, 0, 1))
 #' @export
 probs_link <- function(p){
   p %<>% plogis %>% c(1)
@@ -2309,6 +2322,7 @@ probs_link <- function(p){
 #' have ascending values
 #' @param m A vector of real valued mean parameters
 #' @return A vector ascending mean values, starting at m[1]
+#' @examples means_link(c(-1, 0, 1))
 #' @export
 means_link <- function(m){
   m %>% exp %>% cumsum %>% return

@@ -28,3 +28,6 @@ Transforms parameters from the real scale on which they are estimated to the
 correct parameter-space scale using the appropriate link functions and 
 covariate formulas
 }
+\examples{
+fit_GAI(c(0, 0), example_data, "mixture") \%>\% transform_output(DF = example_data[1, ])
+}

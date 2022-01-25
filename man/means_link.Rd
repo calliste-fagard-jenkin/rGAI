@@ -16,3 +16,6 @@ A vector ascending mean values, starting at m[1]
 Transforms a vector of numbers on the real line to a vector of means that
 have ascending values
 }
+\examples{
+means_link(c(-1, 0, 1))
+}

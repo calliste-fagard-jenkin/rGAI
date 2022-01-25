@@ -16,3 +16,6 @@ A vector weights that sum to one, distributed according to p
 Transforms a vector of numbers on the real line to a vector of weights that
 sum to one
 }
+\examples{
+probs_link(c(-1, 0, 1))
+}

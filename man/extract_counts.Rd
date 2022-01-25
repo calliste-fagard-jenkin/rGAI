@@ -22,3 +22,6 @@ A matrix of counts, with rows as sites and columns as occasions.
 Loops through unique values of 'occasion' and 'site' in a data.frame in order
 to extract the matrix of observed counts required for GAI model fitting
 }
+\examples{
+extract_counts(example_data)
+}
