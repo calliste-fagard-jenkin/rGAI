@@ -4,7 +4,7 @@ output: rmarkdown::html_vignette
 extra_dependencies: ["xcolor", "hyperref"]
 vignette: >
   %\VignetteIndexEntry{vignette}
-  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEngine{knitr::rmarkdown}   
   %\VignetteEncoding{UTF-8}
 ---
 # Introduction to the rGAI package
@@ -28,16 +28,20 @@ https://github.com/calliste-fagard-jenkin/rGAI
 
 ```{R loading, results = 'hide', warning = F}
 #library(devtools, quietly = T)
-#install_github("calliste-fagard-jenkin/GAI", quiet = F)
+#install_github("calliste-fagard-jenkin/rGAI", quiet = F)
 library(rGAI)
 ```
 
-# Preparing Data for the GAI Package
+# Preparing Data for the rGAI package
 
-Let us begin by loading an example data set which is provided within the GAI
+Let us begin by loading an example data set which is provided within the rGAI
 package, and examining its structure. These data consist of a simulation from 
 a mixture model with three broods, across 50 sites and 26 occasions (one survey
-every week from April to September, inclusive, for a given year).
+every week from April to September, inclusive, for a given year). The rGAI
+package comes with a handy function (`extract_counts`) to convert `data.frame`
+data to a matrix of counts, to facilitate plotting. This function also checks if 
+the survey has any missing occasions, and so can be a useful way of sanitising a 
+new dataset.
 
 ```{R data, fig.width = 7, fig.height = 5}
 # For the pipe operator:
@@ -45,10 +49,6 @@ library(magrittr)
 data("example_data")
 head(example_data)
 
-# The GAI package comes with a handy function to convert data.frame data to 
-# a matrix of counts, to facilitate plotting. This function also checks if 
-# the survey has any missing occasions, so can be a useful way of sanitising
-# a new dataset:
 test_data <- extract_counts(example_data, returnDF = T)$matrix
 
 # Plot the observed densities, averaged across all sites:
@@ -57,16 +57,16 @@ test_data %>% apply(2, mean, na.rm = T) %>%
        xlab = 'Week', ylab = 'Observed count, averaged across all sites')
 ```
 
-Each row in our input data.frame is used to store the result of the observed 
+Each row in our input `data.frame` is used to store the result of the observed 
 count at a given site on a given occasion. We assume that the interval between
 each occasion is fixed, and that sites are independent. The 'site', 'occasion'
-and 'count' columns must be given these precise names to allow the GAI package 
+and 'count' columns must be given these precise names to allow the rGAI package 
 to recognise them. Missing observations can be listed with an NA entry.
 
 Sites and occasions can have either character or numeric names.  Because 
-of this, the GAI package will assume occasions occurred in the order they first
+of this, the rGAI package will assume occasions occurred in the order they first
 appear in the data frame. If no observations were collected for any sites on a
-given occasion, this occasion should still be included in the data.frame with 
+given occasion, this occasion should still be included in the `data.frame` with 
 NA entries for each site.
 
 The fourth column 'altitude' represents a covariate (with standardised values),
@@ -80,35 +80,35 @@ As described by
 \textit{et al} (2016)}, the Generalised Abundance Index is a model
 comprised of two parts. Firstly, the seasonal flight pattern  describes the
 density of arrivals at each occasion in the study, and can be modelled either by 
-a stopover model \textcolor{red}{cite Matechou et al 2014}, a spline, or an
+a stopover model, a spline, or an
 n-component mixture model. The choice of seasonal flight pattern can be
-specified using the options "stopover", "spline" and "mixture", for each of the
-above options, respectively.
+specified using the options `"stopover"`, `"spline"` and `"mixture"`,
+for each of the above options, respectively.
 
 The second part of the GAI model describes the distribution of observed counts
 of individuals at each site on a given occasion. The package includes Poisson
-("P"), Negative Binomial ("NB") and Zero-Inflated Poisson ("ZIP") as options
-for this distribution.
+(`"P"`), Negative Binomial (`"NB"`) and Zero-Inflated Poisson (`"ZIP"`) as
+options for this distribution.
+
+The same `options` argument can be used to indicate if broods should all share
+the same standard deviation, and provide the desired `degree` (of the polymial) and `df` (degrees of freedom) of any splines used. The `verbose = TRUE` option can be 
+used to display the negative log likelihood at each iteration of the model 
+fitting process. The option `hessian = TRUE` can be used to tell the `fit_GAI`
+function to obtain an estimate of the hessian of the likelihood, which can be
+used to estimate the Fisher information.
 
 ```{R fitting}
 # We can load the true parameter values of the simulated data set from the 
-# GAI package, to more easily find starting parameter values for this example:
+# rGAI package, to more easily find starting parameter values for this example:
 data("example_par")
 
-# The 'options' argument of the fit_GAI function is how we specify the 
-# specific model we'd like the package to fit. For mixture and stopover models
-# we can specify if each brood should be modelled to have the same standard 
-# deviation, and the number of broods our model should use:
+# Options for mixture and stopover models:
 my_options <- list(B = 3, shared_sigma = T)
 
-# In the case of a spline-based model, the package needs to know the number of
-# degrees of freedom and the degree of the splines we want to use:
+# Options for spline models:
 options_for_splines <- list(df = 20, degree = 3)
 
-# The fit_GAI function includes a 'verbose'  option, which prints the value of
-# the negative log-likelihood at each iteration, and also the option to 
-# estimate the hessian matrix of the parameters, to obtain their 
-# variance covariance matrix:
+# Now, fitting the model:
 my_mixture_GAI <- fit_GAI(start = example_par,
                           DF = example_data, a_choice = "mixture",
                           dist_choice = "ZIP", options = my_options,
@@ -128,22 +128,21 @@ my_spline_GAI <- fit_GAI(start = rep(0, 20), DF = example_data,
 # Print the MLEs to show the model has fitted correctly:
 my_spline_GAI$par
 ```
-If an incorrect number of starting values is given to fit_GAI, an error will 
+If an incorrect number of starting values is given to `fit_GAI`, an error will 
 be raised, and a printout will indicate the parameter starting values that
-fit_GAI expects. The order of these starting values is important, and matches 
-the order of the output fit_GAI produces in this scenario. This feature should
+`fit_GAI` expects. The order of these starting values is important, and matches 
+the order of the output `fit_GAI` produces in this scenario. This feature should
 be used to avoid making mistakes when unsure of how many parameters a model
 specification will require. Confusingly, NA values are not allowed as starting
 values, but functionality exists within the code to aid in finding reasonable
 starting values, which is outlined later in this vignette.
 
 It's worth noting that multiple numerical methods exist for finding the MLEs 
-of the GAI model. The package uses the 'optim' function which makes use of the 
+of the GAI model. The package uses the `optim` function which makes use of the 
 "Nelder-Mead" algorithm by default, but this can be changed to other options,
-such as "BFGS" or "SANN" (simulated annealing) by passing in method = "SANN"
+such as "BFGS" or "SANN" (simulated annealing) by passing in `method = "SANN"`
 (for example) as an argument to fit_GAI.
 
-\textcolor{red}{But not yet...}
 ```{R mistake}
 # We cut off some of our starting parameters on purpose, to cause the exception
 # to be raised:
@@ -156,13 +155,13 @@ try({my_mixture_GAI <- fit_GAI(start = example_par[1:3], DF = example_data,
 # Including Covariates
 
 Models using 'mixture' and 'stopover' seasonal flight patterns are able to
-include covoariates on the values of the means, disperisions and weights for
+include covariates on the values of the means, dispersions and weights for
 their normal distribution components.
 
 Covariates can be included either as a general formula, which will apply to 
 all broods, or be specified individually for each brood. Covariates for the
-normal components should be specified by adding a 'mu_formula',
-'sigma_formula', or 'w_formula' to the 'options argument', for the mean,
+normal components should be specified by adding a `mu_formula`,
+`sigma_formula`, or `w_formula` to the `options` argument, for the mean,
 standard deviation, and for weights of each component, respectively.
 
 When specifying covariate formulae one by one for each brood, we have the option
@@ -171,6 +170,10 @@ flexibility, it is good practice to ensure the list of formulae always has
 the same number of elements as the number of broods specified. If more formulae
 are specified than there are broods, these extra formulae will simply be
 ignored.
+
+It should be noted that the value 0 is often used to initialise covariate 
+parameters, and reflects the a priori assumption that the covariate has no 
+effect.
 
 ```{R covariates}
 # To specify a formula which will be identical for each brood, 
@@ -242,12 +245,12 @@ univoltine_fit <- fit_GAI(start = c(2.2, 1, 0, 0), DF = example_data,
 univoltine_fit$par
 ```
 
-It should be noted that the GAI package comes with no methods for interpolating 
-missing covariate values. Because of this, any NA covariate values in data.frame
-objects passed to fit_GAI will cause an error to be outputted to the console. 
-The GAI package only supports 'spatial' covariates, that is, covariates whose 
+It should be noted that the rGAI package comes with no methods for interpolating 
+missing covariate values. Because of this, any NA covariate values in `data.frame`
+objects passed to `fit_GAI` will cause an error to be outputted to the console. 
+The rGAI package only supports 'spatial' covariates, that is, covariates whose 
 values vary only by site, and are identical for every single sampling occasion, 
-for a given site. Supplying time-varying covariates to fit_GAI will similarly
+for a given site. Supplying time-varying covariates to `fit_GAI` will similarly
 lead to an error being thrown.
 
 ```{R covErrors}
@@ -278,21 +281,26 @@ error_fit <- try(fit_GAI(start = general_fit_start, DF = example_time_varying,
 
 To aid numerical routines in estimating the maximum likelihood estimates of
 parameter values, link functions are used to ensure that parameter guesses can
-always be made on the entire real line. Because many broods can be used, the GAI
+always be made on the entire real line. Because many broods can be used, the rGAI
 package uses custom link functions for mean arrival times and dispersions, which
 are slightly more complicated that the typical log and logistic link functions.
 
-The fit_GAI function expects all starting values to be given on this link scale, 
+The `fit_GAI` function expects all starting values to be given on this link scale, 
 which can make using our intuition or knowledge of our data very difficult to 
-produce good starting values. To remedy this, the transform_starting_values
+produce good starting values. To remedy this, the `transform_starting_values`
 function can be used to transform parameter guesses on the 'real world' scale to 
 the link scale.
 
+In the below chunk, we annotate the previous plot of observed counts. Adding 
+in lines to mark estimates of the mean brood arrival times, and horizontal 
+lines for the estimates of the standard deviation in arrival times for each 
+brood. By assuming that most observations are contained within two standard
+deviations of the mean, we use the half width of a single horizontal bar as an 
+estimate of the standard deviation. To estimate the component weights, we assume
+the height of the peak of a brood's component in the mixture is roughly 
+proportional to the percentage of the population that are in that brood.
+
 ```{R transform1, fig.width = 7, fig.height = 5}
-# Let's produce a slightly 'annotated' version of the plot of observed counts
-# we had before. We'll add in some lines where we think the mean brood arrival
-# times are, and add in horizontal lines to try to estimate thw standard 
-# deviation of each brood's arrivals:
 test_data %>% apply(2, mean, na.rm = T) %>% 
   plot(x = 1:ncol(test_data), type = 'l', col = rgb(1, 0, 0, 0.6), lty = 2, 
        xlab = 'Week', ylab = 'Observed count, averaged across all sites')
@@ -312,31 +320,29 @@ lines(c(19, 26), rep(plot.base, 2), col = plot.col)
 
 # The length of the three horizontal bars that measure the width of our broods:
 brood_widths <- c(6.5, 9, 7)
-
-# Using a very rough rule of thumb that 95% of data in a normal distribution are
-# found within 1.96 standard deviations from the means, we use the half width of
-# our bars as an estimate of two sigma:
 sigma_guesses <- brood_widths / 4
+
+w_guesses <- c(4.6 - plot.base, 21.3 - plot.base, 8 - plot.base) %>%
+  sum_to_one
 
 # Our guesses for the means can simply be read off of the lines of code that
 # produced the plot:
 mu_guesses <- c(4.1, 13, 23)
-
-# To guess the weights, we make the crude assumption that the height of the peak
-# of a brood relative to the others is roughly propoprtional to the percentage
-# of the population that finds itself in this brood:
-w_guesses <- c(4.6 - plot.base, 21.3 - plot.base, 8 - plot.base) %>%
-  sum_to_one
 ```
 
 
-Let's consider our brood_specific_fit once more, but using the 
-transform_starting_values function to obtain better starting values, without
-knowing the distribution our data came from. The transform_starting_values 
+Let's consider our `brood_specific_fit` once more, but using the 
+`transform_starting_values` function to obtain better starting values, without
+knowing the distribution our data came from. The `transform_starting_values` 
 function will assume that 0 is a reasonable starting value for all covariate
 parameters and spline parameters, which usually leads to numerically sound
 estimation of the MLEs. However, if covariates aren't normalised, and have 
-large magnitude, this won't be the case.
+large magnitude, this won't be the case. Note that in the case of 
+zero-infalted poisson or negative binomial count distributions, an initial 
+guess for the additional distributional parameter can also be provided, using 
+the name `dist.par`. When covariates are included in a model specification, we
+must also make sure the `transform_starting_values` function is supplied with
+the `data.frame` of observations, with the argument `DF`.
 
 ```{R transform2}
 # We create a list of starting values for parameters with the same structure 
@@ -344,19 +350,10 @@ large magnitude, this won't be the case.
 my_starting_guesses <- list(mu = mu_guesses, sigma = sigma_guesses,
                             w = w_guesses)
 
-# Note: When a ZIP or NB model is used, we can also include a guess for the
-# distributional parameter by adding in a dist.par entry to this list, and 
-# additionally a retention probability 'phi' can be added for stopover models 
 new_brood_specific_start <-
   transform_starting_values(starting_values = my_starting_guesses,
                             a_choice = "mixture", dist_choice = "P",
                             options = brood_specific_options,
-                            # When covariates are included in the model, we 
-                            # need to include the data.frame of observations and
-                            # covariate values, or the GAI package won't be able
-                            # to figure out how many parameters the model 
-                            # specification requires. This can be omitted for
-                            # non-covariate-including models
                             DF = example_data)
 
 # Let's print these new starting values, and refit the model:
@@ -371,7 +368,7 @@ new_brood_specific_fit$par
 
 # Using Bootstraps
 
-Bootstraps in the GAI package are available in two options. The first option
+Bootstraps in the rGAI package are available in two options. The first option
 will resample sites (and their covariate values) from the observed data set, 
 refitting the model each time it does this. It then extracts the bootstrap
 distribution of estimated site superpopulation sizes and parameter estimates to
@@ -381,8 +378,8 @@ provided to do these calculations in parallel.
 
 The second method of bootstrapping involves resampling parameter values from
 their asymptotic multivariate normal distribution. This involves a numerical 
-estimate of the Information matrix, and so is only available if a model has
-been fitted with the hessian = TRUE option in fit_GAI.
+estimate of the Fisher Information matrix, and so is only available if a model has
+been fitted with the `hessian = TRUE` option in fit_GAI.
 
 The second type of bootstrap runs considerably faster, and is likely to be the 
 only available option when many sites or covariates have been included, due to
@@ -391,32 +388,33 @@ typically produces intervals with coverage closer to the target, as it has
 no dependence on asymptotic properties or estimates of the Information matrix.
 
 Bootstraps can be produced for transformed covariates, for models with and 
-without covariates, in both the refit the model, and the resample the MLEs case.
+without covariates, in both the 'refit the model', and the 'resample the MLEs'
+case.
 
-\textcolor{red}{Reminder to myself to parallelise MLE resampling bootstrap}
+The option `R` within the `bootstrap` function allows us to specify the number
+of bootstrap iterations the function should perform. `refit = TRUE` selects the 
+'refit the model' style of bootstrap. `alpha` specifies the targeted coverage
+of the bootstrap, and `transform = TRUE` indicates the bootstrap should be 
+performed on transformed output parameter values (on the parameter scale, as 
+opposed to the link function scale). The `cores` option will be used to
+determine the number of cores used to perform the calculation in parallel, when 
+this is possible. The default value is one less than the number of cores on the 
+device, and therefore, it is important to specify this value when using any 
+computing devices which are shared between multiple users.
 
 ```{R bootstrap, warnings = F}
-# To produce a bootstrap, we must specify if we wish to refit the model
-# (determining the type of bootstrap fitted), as well as the number of
-# bootstrap resamples we would like to use (R). The transform = T argument
-# can be used to produce bootstraps on the parameter-scale, rather than 
-# the link-scale:
 general_fit_bootstrap <- bootstrap(general_fit, R = 500, refit = F,
                                    alpha = 0.01, transform = T)
 
-# The more time-consuming bootstrap can be fitted in parallel, with a chosen
-# number of cores. If this is not specified, the default number of cores 
-# will be one less than the number available on the computer, so this must
-# always be specified if running models on a large server:
 refitting_bootstrap <- bootstrap(general_fit, R = 9, refit = T, parallel = F,
                                  cores = 3, alpha = 0.01, transform = T)
 ```
 
 
 The bootstraps output contains raw values from each iteration of the estimated
-parameter values, the flight path densities for each site and occasion, the estimated site totals (site superpopulations), and the average estimated site
-total. The $1 - \alpha$ confidence intervals are available in the \$par,
-\$sites and \$index elements of the bootstrap output for the parameters,
+parameter values, the flight path densities for each site and occasion, the estimated site totals (site super-populations), and the average estimated site
+total. The $1 - \alpha$ confidence intervals are available in the `$par`,
+`$sites` and `$index` elements of the bootstrap output for the parameters,
 individual site totals and average site total, respectively:
 
 ```{R intervals}
@@ -427,9 +425,9 @@ refitting_bootstrap$par
 
 # Model Outputs
 
-The GAI package comes with some simple functionality for summarising models, 
+The rGAI package comes with some simple functionality for summarising models, 
 as well as more detailed outputs, which will be covered in more detail. The 
-standard R 'summary' function can be used to see the model's AIC, average 
+standard R `summary` function can be used to see the model's AIC, average 
 estimate site total across all sites, and also the MLEs for all model 
 parameters.
 
@@ -442,73 +440,68 @@ summary(my_mixture_GAI)
 AIC(my_mixture_GAI)
 ```
 
-The output of the fit_GAI function is a list with a few important elements.
-The 'par' element gives named estimates of the MLEs for the model parameters, 
-with 'value' giving the value of the negative log likelihood
-evaluated at the MLEs. 'counts', 'convergence', 'message' and 'hessian' are all
-standard outputs given by the optim function with details on the numerical 
-process of estimating the MLEs. 'spline_specs' contains the user-specified
+The output of the `fit_GAI` function is a list with a few important elements.
+The `par` element gives named estimates of the MLEs for the model parameters, 
+with `value` giving the value of the negative log likelihood
+evaluated at the MLEs. `counts`, `convergence`, `message` and `hessian` are all
+standard outputs given by the `optim` function with details on the numerical 
+process of estimating the MLEs. `spline_specs` contains the user-specified
 options for fitting splines, and will be an empty list for mixture and 
-stopover models. 'dist_choice' and 'a_choice' contain the count distribution 
-and flight path distributions, respectively. Skeleton contains the skeleton
+stopover models. `dist_choice` and `a_choice` contain the count distribution 
+and flight path distributions, respectively. `skeleton` contains the skeleton
 list of parameter values that the package uses to fit the model, with 
-'options' being the list of options passed to fit_GAI. 'maxiter' refers to the
-maximum number of iterations used to estimate the MLEs of ZIP and NB models. 'A'
-and 'N' contain the matrix of estimated seasonal densities at each site and 
-occasion, and the vector of estimated site totals, respectively. 'DMs' contains
-the list of design matrices used by the GAI package to include the selected
-covariate formulas in the model. 'obs' contains the count observations in 
+`options` being the list of options passed to `fit_GAI`. `maxiter` refers to the
+maximum number of iterations used to estimate the MLEs of ZIP and NB models. `A`
+and `N` contain the matrix of estimated seasonal densities at each site and 
+occasion, and the vector of estimated site totals, respectively. `DMs` contains
+the list of design matrices used by the rGAI package to include the selected
+covariate formulas in the model. `obs` contains the count observations in 
 matrix form, with sites as rows and occasions as columns. This is the same
-format as for 'A'. 'DF' contains the original data.frame supplied to fit_GAI,
-and finally, 'tol' specififies the stopping condition used for the model (an 
+format as for `A`. `DF` contains the original `data.frame` supplied to `fit_GAI`,
+and finally, `tol` specififies the stopping condition used for the model (an 
 epsilon such that during an iterative process for fitting a ZIP or NB model, 
 a difference of less than epsilon in the negative log likelihood between two
 iterations causes the process to terminate).
 
 # Transforming Parameter Estimates
 
-Numerical solvers that attempt to find the MLEs must be able to perform guesses
+Numerical solvers that attempt to find MLEs must be able to perform guesses
 anywhere on the real scale. This causes issues with certain parameters which 
-can only take on values in very particular ranges, such as probabilities which
+can only take on values in a particular range, such as probabilities which
 must always be between 0 and 1, for example. Further to this, the estimation 
 of values such as mean arrival times for broods can be unidentifiable if 
 specified ambiguously. In this example, unless we force the mean for the second
 brood to be greater than that for the first (and so forth), then multiple sets
 of parameters could give the same maximal value of the log likelihood. For
-these reasons, the GAI package uses link functions to map between the real line
+these reasons, the rGAI package uses link functions to map between the real line
 on which we make parameter value guesses during fitting, and the 'parameter
-space line', where all parameters are within the correct bounds.
+space', where all parameters are within their correct bounds.
 
 In order to be able to interpret our output values, we must apply the relevant
 link functions to transform them back to the appropriate scale. For mu
-parameters this can be done with the means_link function. For standard
+parameters this can be done with the `means_link` function. For standard
 deviations, a log-link is used, and so fitted values should be exponentiated.
 Weights also use a custom link function, which can be applied to fitted values
-using the probs_link function. The extra distributional parameter for the ZIP
+using the `probs_link` function. The extra distributional parameter for the ZIP
 uses a logistic link (by virtue of being a probability), which can be applied
-with the qlogis function, whereas the rate parameter for an NB model should
+with the `qlogis` function, whereas the rate parameter for an NB model should
 be exponentiated, to ensure it is always positive.
 
-The transform_output function within the GAI package uses model settings stored
+The `transform_output` function within the rGAI package uses model settings stored
 in the fitted model object to apply these link functions automatically, making
 sure that the effect of covariates has also been taken into account.
 ```{R backtransform}
-# The easiest way to obtain transformed parameter values on the correct scale
-# is to use the transform_output function. This function uses the skeleton and
-# options present in the fitted model object to apply covariate formulas before
-# applying link functions.
-
-# We can create a data.frame with custom covariate values, or reuse values that
+# We can create a `data.frame` with custom covariate values, or reuse values that
 # we observed during the survey:
-DF_to_transform <- data.frame(altitude = c(-100, 0, 100))
+DF_to_transform <- `data.frame`(altitude = c(-100, 0, 100))
 DF_to_transform <- general_fit$DF[1:3,]
 
 # The transform_output function deals with all the covariate formulas and link
 # functions by using the information contained in the fitted model object:
 transform_output(general_fit, DF_to_transform)
 
-# When no covariates were included in the model, a blank data.frame, or no 
-# data.frame at all can be used to only provide the transformed values:
+# When no covariates were included in the model, a blank `data.frame`, or no 
+# `data.frame` at all can be used to only provide the transformed values:
 transform_output(my_mixture_GAI)
 
 # We can also use this function to get out the a_func matrix for a set of
@@ -520,30 +513,30 @@ matplot(t(A), type = 'l', col = c("blue", "darkblue", "darkgrey"),
 # It's important to include all covariates exactly as they were named in the 
 # call to fit_GAI, otherwise an error will be thrown, giving the name of the 
 # missing covariate.
-try(transform_output(brood_specific_fit, data.frame(altiitude = c(-10, 0, 10))))
+try(transform_output(brood_specific_fit, `data.frame`(altiitude = c(-10, 0, 10))))
 
 # NA covariate values will throw an error, as always:
-try(transform_output(brood_specific_fit, data.frame(altitude = c(NA, 0, 10))))
+try(transform_output(brood_specific_fit, `data.frame`(altitude = c(NA, 0, 10))))
 ```
 
 # Plotting Fitted Curves
 
-The standard R plot function can be used to produce simple plots of the flight 
+The standard R `plot` function can be used to produce simple plots of the flight 
 path of a fitted model. Optionally, either the flight path for each site can 
 be included as a separate curve on the same graph, or a smooth can be plotted
 instead. This smooth averages through the different values observed at each 
 site, at a set of quantiles that can be specified by the user. The default 
-behaviour produces plots for the median density ocross sites for a given
+behaviour produces plots for the median density across sites for a given
 occasion, as well as the 5th and 95th quantiles for flight path density. 
 
 To better compare the relative abundance at each site throughout the year, 
 especially when covariates have been included in the model, it can be useful to 
 scale the flight path curve of each site by the estimated site total. This can 
-be done by setting scale_by_N = TRUE in the call to the 'plot' function.
+be done by setting `scale_by_N = TRUE` in the call to the `plot` function.
 
 If custom colours are to be used by the plotting function, the colour palette 
-can be passed to the 'plot' function as a vector of integers or character colour 
-hex values using the 'colours' argument.
+can be passed to the `plot` function as a vector of integers or character colour 
+hex values using the `colours` argument.
 
 ```{R plotting, fig.width = 7, fig.height = 5}
 colours <- c("#33FFF9", "#33A8FF", "#4233FF")

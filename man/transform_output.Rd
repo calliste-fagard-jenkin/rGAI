@@ -12,7 +12,8 @@ transform_output(GAIoutput, DF = data.frame(), provide_A = F)
 \item{DF}{A data.frame containing rows of covariate values for which
 transformed parameter values should be obtained. It is important that the 
 names of columns in this data.frame are identical to those that were
-specified in the options argument of the fit_GAI function.}
+specified in the options argument of the fit_GAI function. A blank data.frame 
+is provided by default, which is assumed in a no covariate model.}
 
 \item{provide_A}{If TRUE, will also return the A matrix for the supplied. It
 should be noted that the A matrix this function returns is not scaled by site

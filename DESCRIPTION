@@ -10,7 +10,7 @@ License: GPL (>= 2)
 Imports: Rcpp (>= 1.0.2), magrittr, splines, mvtnorm, doParallel, reshape2, ggplot2
 LinkingTo: Rcpp
 Encoding: UTF-8
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Suggests: 
     knitr,
     rmarkdown

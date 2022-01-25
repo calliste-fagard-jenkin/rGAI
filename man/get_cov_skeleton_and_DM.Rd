@@ -10,6 +10,9 @@ get_cov_skeleton_and_DM(base, options, DF, n, skeleton, DMs)
 \item{base}{The character name of the type of parameter to be used. Can be
 'mu', 'sigma' or 'w'.}
 
+\item{options}{A list of options given to the fit_GAI function to 
+specify the model}
+
 \item{DF}{The data frame with which covariate values are stored, for creating
 design matrices}
 
@@ -19,9 +22,6 @@ design matrices}
 \item{skeleton}{The object where skeleton items should be added}
 
 \item{DMs}{The object where design matrix should be added}
-
-\item{loptions}{A list of options given to the fit_GAI function to 
-specify the model}
 }
 \value{
 A named list containing the updated skeleton and DMs objects in 

@@ -631,7 +631,7 @@ ZIP_mle_i <- function(N, i, obs, a_func, dp){
 #'
 #' @param base The character name of the type of parameter to be used. Can be
 #' 'mu', 'sigma' or 'w'.
-#' @param loptions A list of options given to the fit_GAI function to 
+#' @param options A list of options given to the fit_GAI function to 
 #' specify the model
 #' @param DF The data frame with which covariate values are stored, for creating
 #' design matrices
@@ -921,15 +921,27 @@ check_GAI_inputs <- function(start, obs, a_choice, dist_choice, options,
 #' entries in the count column are allowed to take the value NA. Any covariate
 #' which is referred to in a formula specified in the options argument should
 #' be present as a column in DF.
-#' @param a_choice "mixture", "stopover" or "splines".
-#' @param dist_choice "P" (poisson), "NB" (negative binomial) or "ZIP"
-#' (zero-inflated poisson).
+#' @param a_choice Choice of flight path function, which describes the seasonal
+#' variation in counts over the monitoring period. Possible options are
+#' "mixture": A normal mixture, with as many components as desired, will be used
+#' to model the seasonal variation in counts.
+#' "stopover": The Matechou et al. (2014) stopver model for seasonal variation 
+#' will be used.
+#' "splines": A general additive model, using splines, will model the seasonal 
+#' variation. The degree and degrees of freedom of the splines can be specified
+#' in the 'options' argument.
+#' @param dist_choice The distribution for observed counts of individuals.
+#' "P" indicates a poisson distribution, "NB" a, negative binomial, and "ZIP", 
+#' the zero-inflated poisson distribution.
 #' @param options A list containing different specifications, which vary
 #' depending on the model. For stopover and mixture models this contains B (the
 #' number of broods), shared_sigma (boolean denoting if the SDs are the same for
 #' each component), mu_formula (specifying a formula which describes a covariate
 #' dependency for the mean arrival times for each brood), and sd_formula
-#' (similar, for the SD of each brood).
+#' (similar, for the SD of each brood). When splines are being used, options 
+#' 'degree' and 'DF' can be included to specify the degree of the polynomial used
+#' by the splines, and the total degrees of freedom of the seasonal flight path
+#' model, respectively.
 #' @param tol The tolerance for the NB and ZIP iterative solvers. The solver
 #' stops when the difference between the negative log likelihood from one
 #' iteration to the next falls beneath this threshold.
@@ -945,8 +957,35 @@ check_GAI_inputs <- function(start, obs, a_choice, dist_choice, options,
 #' @param method A character for the method which should be used to find MLEs.
 #' See optim documentation for options and further detail. SANN (simulated 
 #' annealing) can be a good method of fine-tuning starting points, if one is 
-#' afraid their MLEs are caught in a local maxima.
-#' @return a fitted optim object
+#' afraid their MLEs are caught in a local maximum.
+#' @return The output of the `fit_GAI` function is a list with a few important
+#' elements. The `par` element gives named estimates of the MLEs for the model
+#' parameters, with `value` giving the value of the negative log likelihood
+#' evaluated at the MLEs. `counts`, `convergence`, `message` and `hessian`
+#' are all standard outputs given by the `optim` function with details on the
+#' numerical process of estimating the MLEs. `spline_specs` contains the
+#' user-specified options for fitting splines, and will be an empty list for
+#' mixture and stopover models. `dist_choice` and `a_choice` contain the count
+#' distribution and flight path distributions, respectively. `skeleton` contains
+#'  the skeleton list of parameter values that the package uses to fit the
+#'  model, with `options` being the list of options passed to `fit_GAI`.
+#'  `maxiter` refers to the maximum number of iterations used to estimate the
+#'  MLEs of ZIP and NB models. `A` and `N` contain the matrix of estimated
+#'  seasonal densities at each site and occasion, and the vector of estimated
+#'  site totals, respectively. `DMs` contains the list of design matrices used
+#'  by the rGAI package to include the selected covariate formulas in the model.
+#'  `obs` contains the count observations in matrix form, with sites as rows and
+#'  occasions as columns. This is the same format as for `A`. `DF` contains the
+#'  original `data.frame` supplied to `fit_GAI`, and finally, `tol`
+#'  specififies the stopping condition used for the model (an epsilon such that 
+#'  during an iterative process for fitting a ZIP or NB model, a difference of
+#'  less than epsilon in the negative log likelihood between two iterations
+#'  causes the process to terminate).
+#'  @examples
+#'  fit_GAI(rep(0, 3), example_data, a_choice = "stopover")
+#'  fit_GAI(rep(0, 6), example_data, a_choice = "mixture", options = list(B = 3))
+#'  fit_GAI(rep(0, 20), example_data, a_choice = "splines", options = list(df = 20, degree = 3))
+#'  fit_GAI(rep(0, 5), example_data, a_choice = "mixture", options = list(B = 2, shared_sigma = F))
 #' @export
 fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
                     options = list(), tol = 1e-3, maxiter = 1e3,
@@ -972,7 +1011,7 @@ fit_GAI <- function(start, DF, a_choice = "mixture", dist_choice = "P",
   #                         hessian = TRUE in optim, usually so that this can
   #                         be used to conduct a bootstrap.
   #           skeleton    - Used by the bootstrap function to pass in 
-  #                         arguments to avoid unecessary calculations
+  #                         arguments to avoid unnecessary calculations
   #           bootstrap   - If is not null, contains a set of pre-calculated
   #                         and sanitised objects.
   #           checkInpts  - If TRUE, will sanity check the input arguments
@@ -1272,7 +1311,6 @@ transform_starting_values <- function(starting_values, a_choice, dist_choice,
   phi_guess <- starting_values[["phi"]]
   mu_guess <- starting_values[["mu"]]
   w_guess <- starting_values[["w"]]
-  
   
   # Add a default guess of 0 for each parameter value, and then relist the
   # the skeleton for convenience:

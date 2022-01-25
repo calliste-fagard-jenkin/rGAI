@@ -27,17 +27,29 @@ entries in the count column are allowed to take the value NA. Any covariate
 which is referred to in a formula specified in the options argument should
 be present as a column in DF.}
 
-\item{a_choice}{"mixture", "stopover" or "splines".}
+\item{a_choice}{Choice of flight path function, which describes the seasonal
+variation in counts over the monitoring period. Possible options are
+"mixture": A normal mixture, with as many components as desired, will be used
+to model the seasonal variation in counts.
+"stopover": The Matechou et al. (2014) stopver model for seasonal variation 
+will be used.
+"splines": A general additive model, using splines, will model the seasonal 
+variation. The degree and degrees of freedom of the splines can be specified
+in the 'options' argument.}
 
-\item{dist_choice}{"P" (poisson), "NB" (negative binomial) or "ZIP"
-(zero-inflated poisson).}
+\item{dist_choice}{The distribution for observed counts of individuals.
+"P" indicates a poisson distribution, "NB" a, negative binomial, and "ZIP", 
+the zero-inflated poisson distribution.}
 
 \item{options}{A list containing different specifications, which vary
 depending on the model. For stopover and mixture models this contains B (the
 number of broods), shared_sigma (boolean denoting if the SDs are the same for
 each component), mu_formula (specifying a formula which describes a covariate
 dependency for the mean arrival times for each brood), and sd_formula
-(similar, for the SD of each brood).}
+(similar, for the SD of each brood). When splines are being used, options 
+'degree' and 'DF' can be included to specify the degree of the polynomial used
+by the splines, and the total degrees of freedom of the seasonal flight path
+model, respectively.}
 
 \item{tol}{The tolerance for the NB and ZIP iterative solvers. The solver
 stops when the difference between the negative log likelihood from one
