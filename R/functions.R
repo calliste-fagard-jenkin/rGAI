@@ -2022,8 +2022,9 @@ bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
     parameters %<>% apply(1, transform_params, GAI_fit = GAI_fit,
                           use_all = refit) %>% t
     
-    colnames(parameters) <-
-      colnames(transform_params(GAI_fit$par, GAI_fit, F))
+    # Assume the transformation has removed parameters that are only used to 
+    # calculate the effect of a covariate:
+    colnames(parameters) <- names(GAI_fit$par) %>% {.[!grepl(".cov", .)]}
   }
   
   # Calculate the confidence intervals using the results:
@@ -2337,5 +2338,3 @@ means_link <- function(m){
 sum_to_one <- function(v){
   return(v / sum(v))
 }
-
-
