@@ -12,7 +12,7 @@ library(devtools)
 install_github("calliste-fagard-jenkin/rGAI", quiet = F)
 ```
 # Bug Reports
-Please report bugs via the GitHub interface, or by contacting the package's maintainer directly via email at cfj2@st-andrews.ac.uk. Please also contact the maintainer for requests to contribute. For questions related to the Generalised Abundance Index itself, please contact the lead author of the 2016 paper: E.B.Dennis@kent.ac.uk 
+Please report bugs via the GitHub interface, or by contacting the package's maintainer directly via email at cfj2@st-andrews.ac.uk. Please also contact the maintainer for requests to contribute. For questions related to the Generalised Abundance Index itself, please contact the lead author of the 2016 paper: edennis@butterfly-conservation.org
 
 # Package Vignette
 A full tutorial covering the package's range of features can be found in the /vignettes and /examples folders. For further descriptions and examples, please see the pre-print of the package's sister paper: https://www.authorea.com/doi/full/10.22541/au.163601791.14513063/v1
