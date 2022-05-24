@@ -35,7 +35,10 @@ maximum number of available cores.}
 default of using all available cores is undesirable.}
 
 \item{transform}{if TRUE, will return a bootstrap on the transformed
-parameters, rather than on the link scale}
+parameters, rather than on the link scale. It should be noted that when 
+covariates are present in the model, transformed outputs are averaged across
+all covariate values in the data, to avoid erroneous interpretation of 
+covariate effects on the transformed scale.}
 }
 \value{
 A named list with entries "EC", "N", "A" and "par" giving the

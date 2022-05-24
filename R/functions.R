@@ -1919,7 +1919,10 @@ transform_params <- function(param_vector, GAI_fit, use_all){
 #' @param cores If not NULL, this specifies the number of cores to use, if the
 #' default of using all available cores is undesirable.
 #' @param transform if TRUE, will return a bootstrap on the transformed
-#' parameters, rather than on the link scale
+#' parameters, rather than on the link scale. It should be noted that when 
+#' covariates are present in the model, transformed outputs are averaged across
+#' all covariate values in the data, to avoid erroneous interpretation of 
+#' covariate effects on the transformed scale.
 #' @return A named list with entries "EC", "N", "A" and "par" giving the
 #' \code{c(alpha / 2, 1 - alpha / 2)} confidence interval for the expected
 #' observed count at each site on each occasion, the estimated 

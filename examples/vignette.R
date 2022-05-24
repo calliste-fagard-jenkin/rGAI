@@ -214,11 +214,9 @@ refitting_bootstrap <- bootstrap(general_fit, R = 9, refit = T, parallel = F,
 
 
 ## ----intervals-------------------------------------------------------------------------------------------------------------------------------------------
-# Taking a look at the results of the 'refit the model at each iteration'
-# style of bootstrap:
-refitting_bootstrap$par         # parameter estimates
-refitting_bootstrap$N[, 1:10]   # site super-population estimates
-refitting_bootstrap$EC[1, 1:10] # expected counts at each site
+refitting_bootstrap$par            # parameter estimates
+refitting_bootstrap$N[,1:5]        # site super-population estimates
+refitting_bootstrap$EC[, 1:5, 1:2] # expected counts at each site, per occasion
 
 
 ## ----summary---------------------------------------------------------------------------------------------------------------------------------------------
