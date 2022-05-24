@@ -11,7 +11,7 @@ Imports: Rcpp (>= 1.0.2), magrittr, splines, mvtnorm, doParallel, reshape2, ggpl
 Depends: R (>= 3.6.0)
 LinkingTo: Rcpp
 Encoding: UTF-8
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.0
 Suggests: 
     knitr,
     rmarkdown

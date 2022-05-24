@@ -22,9 +22,9 @@ providing an example workflow on simulated data.
 
 # Installing the Package from Source
 
-In order to install the rGAI package from source, the folder containing the
-source code must be downloaded from Github:
-https://github.com/calliste-fagard-jenkin/rGAI
+In order to install the `rGAI` package from source, the folder containing the
+source code must be downloaded from Github (https://github.com/calliste-fagard-jenkin/rGAI), or installed via
+`install_github` in the `devtools` package.
 
 ```{R loading, results = 'hide', warning = F}
 #library(devtools, quietly = T)
@@ -32,12 +32,12 @@ https://github.com/calliste-fagard-jenkin/rGAI
 library(rGAI)
 ```
 
-# Preparing Data for the rGAI package
+# Preparing Data for the `rGAI` package
 
-Let us begin by loading an example data set which is provided within the rGAI
+Let us begin by loading an example data set which is provided within the `rGAI`
 package, and examining its structure. These data consist of a simulation from 
 a mixture model with three broods, across 50 sites and 26 occasions (one survey
-every week from April to September, inclusive, for a given year). The rGAI
+every week from April to September, inclusive, for a given year). The `rGAI`
 package comes with a handy function (`extract_counts`) to convert `data.frame`
 data to a matrix of counts, to facilitate plotting. This function also checks if 
 the survey has any missing occasions, and so can be a useful way of sanitising a 
@@ -60,11 +60,11 @@ test_data %>% apply(2, mean, na.rm = T) %>%
 Each row in our input `data.frame` is used to store the result of the observed 
 count at a given site on a given occasion. We assume that the interval between
 each occasion is fixed, and that sites are independent. The 'site', 'occasion'
-and 'count' columns must be given these precise names to allow the rGAI package 
+and 'count' columns must be given these precise names to allow the `rGAI` package 
 to recognise them. Missing observations can be listed with an NA entry.
 
 Sites and occasions can have either character or numeric names.  Because 
-of this, the rGAI package will assume occasions occurred in the order they first
+of this, the `rGAI` package will assume occasions occurred in the order they first
 appear in the data frame. If no observations were collected for any sites on a
 given occasion, this occasion should still be included in the `data.frame` with 
 NA entries for each site.
@@ -75,9 +75,8 @@ models available within the package.
 
 # Fitting a Simple Model
 
-As described by
-\href{https://onlinelibrary.wiley.com/doi/full/10.1111/biom.12506}{Dennis
-\textit{et al} (2016)}, the Generalised Abundance Index is a model
+As described by [Dennis
+_et al_ (2016)](https://onlinelibrary.wiley.com/doi/full/10.1111/biom.12506), the Generalised Abundance Index is a model
 comprised of two parts. Firstly, the seasonal flight pattern  describes the
 density of arrivals at each occasion in the study, and can be modelled either by 
 a stopover model, a spline, or an
@@ -141,7 +140,7 @@ It's worth noting that multiple numerical methods exist for finding the MLEs
 of the GAI model. The package uses the `optim` function which makes use of the 
 "Nelder-Mead" algorithm by default, but this can be changed to other options,
 such as "BFGS" or "SANN" (simulated annealing) by passing in `method = "SANN"`
-(for example) as an argument to fit_GAI.
+(for example) as an argument to `fit_GAI`.
 
 ```{R mistake}
 # We cut off some of our starting parameters on purpose, to cause the exception
@@ -195,7 +194,7 @@ brood_specific_options <- list(B = 3, shared_sigma = F,
 # one additional parameter. We'll give this a starting value of 0, which 
 # reflects an a priori belief that the covariate has no effect. To do this, 
 # we simply replace the final value of example par with 0, since distributional
-# parameters are placed at the end of the parameter vector, and covariate are 
+# parameters are placed at the end of the parameter vector, and covariates are 
 # placed after these, when they are present:
 general_fit_start <- example_par[1:(length(example_par) - 1)] %>% c(0)
 
@@ -245,10 +244,10 @@ univoltine_fit <- fit_GAI(start = c(2.2, 1, 0, 0), DF = example_data,
 univoltine_fit$par
 ```
 
-It should be noted that the rGAI package comes with no methods for interpolating 
+It should be noted that the `rGAI` package comes with no methods for interpolating 
 missing covariate values. Because of this, any NA covariate values in `data.frame`
 objects passed to `fit_GAI` will cause an error to be outputted to the console. 
-The rGAI package only supports 'spatial' covariates, that is, covariates whose 
+The `rGAI` package only supports 'spatial' covariates, that is, covariates whose 
 values vary only by site, and are identical for every single sampling occasion, 
 for a given site. Supplying time-varying covariates to `fit_GAI` will similarly
 lead to an error being thrown.
@@ -281,9 +280,9 @@ error_fit <- try(fit_GAI(start = general_fit_start, DF = example_time_varying,
 
 To aid numerical routines in estimating the maximum likelihood estimates of
 parameter values, link functions are used to ensure that parameter guesses can
-always be made on the entire real line. Because many broods can be used, the rGAI
+always be made on the entire real line. Because many broods can be used, the `rGAI`
 package uses custom link functions for mean arrival times and dispersions, which
-are slightly more complicated that the typical log and logistic link functions.
+are slightly more complicated than the typical log and logistic link functions.
 
 The `fit_GAI` function expects all starting values to be given on this link scale, 
 which can make using our intuition or knowledge of our data very difficult to 
@@ -368,7 +367,7 @@ new_brood_specific_fit$par
 
 # Using Bootstraps
 
-Bootstraps in the rGAI package are available in two options. The first option
+Bootstraps in the `rGAI` package are available with two options. The first option
 will resample sites (and their covariate values) from the observed data set, 
 refitting the model each time it does this. It then extracts the bootstrap
 distribution of estimated site superpopulation sizes and parameter estimates to
@@ -379,7 +378,7 @@ provided to do these calculations in parallel.
 The second method of bootstrapping involves resampling parameter values from
 their asymptotic multivariate normal distribution. This involves a numerical 
 estimate of the Fisher Information matrix, and so is only available if a model has
-been fitted with the `hessian = TRUE` option in fit_GAI.
+been fitted with the `hessian = TRUE` option in `fit_GAI`.
 
 The second type of bootstrap runs considerably faster, and is likely to be the 
 only available option when many sites or covariates have been included, due to
@@ -418,14 +417,14 @@ total. The $1 - \alpha$ confidence intervals are available in the `$par`,
 individual site totals and average site total, respectively:
 
 ```{R intervals}
-# Taking a look at the results of the 'refit the model at each iteration'
-# style of bootstrap:
-refitting_bootstrap$par
+refitting_bootstrap$par            # parameter estimates
+refitting_bootstrap$N[,1:5]        # site super-population estimates
+refitting_bootstrap$EC[, 1:5, 1:2] # expected counts at each site, per occasion
 ```
 
 # Model Outputs
 
-The rGAI package comes with some simple functionality for summarising models, 
+The `rGAI` package comes with some simple functionality for summarising models, 
 as well as more detailed outputs, which will be covered in more detail. The 
 standard R `summary` function can be used to see the model's AIC, average 
 estimate site total across all sites, and also the MLEs for all model 
@@ -454,7 +453,7 @@ list of parameter values that the package uses to fit the model, with
 maximum number of iterations used to estimate the MLEs of ZIP and NB models. `A`
 and `N` contain the matrix of estimated seasonal densities at each site and 
 occasion, and the vector of estimated site totals, respectively. `DMs` contains
-the list of design matrices used by the rGAI package to include the selected
+the list of design matrices used by the `rGAI` package to include the selected
 covariate formulas in the model. `obs` contains the count observations in 
 matrix form, with sites as rows and occasions as columns. This is the same
 format as for `A`. `DF` contains the original `data.frame` supplied to `fit_GAI`,
@@ -473,7 +472,7 @@ of values such as mean arrival times for broods can be unidentifiable if
 specified ambiguously. In this example, unless we force the mean for the second
 brood to be greater than that for the first (and so forth), then multiple sets
 of parameters could give the same maximal value of the log likelihood. For
-these reasons, the rGAI package uses link functions to map between the real line
+these reasons, the `rGAI` package uses link functions to map between the real line
 on which we make parameter value guesses during fitting, and the 'parameter
 space', where all parameters are within their correct bounds.
 
@@ -487,7 +486,7 @@ uses a logistic link (by virtue of being a probability), which can be applied
 with the `qlogis` function, whereas the rate parameter for an NB model should
 be exponentiated, to ensure it is always positive.
 
-The `transform_output` function within the rGAI package uses model settings stored
+The `transform_output` function within the `rGAI` package uses model settings stored
 in the fitted model object to apply these link functions automatically, making
 sure that the effect of covariates has also been taken into account.
 ```{R backtransform}

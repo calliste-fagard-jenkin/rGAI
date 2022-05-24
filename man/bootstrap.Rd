@@ -38,10 +38,11 @@ default of using all available cores is undesirable.}
 parameters, rather than on the link scale}
 }
 \value{
-A named list with entries "GAI", "N", "A" and "par" giving the 
-\code{c(alpha / 2, 1 - alpha / 2)} confidence interval for the GAI, site
-superpopulation, seasonal component and estimated parameter values,
-respectively.
+A named list with entries "EC", "N", "A" and "par" giving the
+\code{c(alpha / 2, 1 - alpha / 2)} confidence interval for the expected
+observed count at each site on each occasion, the estimated 
+site super-population, the seasonal component, and the estimated
+parameter values, respectively.
 }
 \description{
 Produces either a non-parameteric bootstrap by refitting the GAI at each

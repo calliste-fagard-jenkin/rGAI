@@ -1920,35 +1920,14 @@ transform_params <- function(param_vector, GAI_fit, use_all){
 #' default of using all available cores is undesirable.
 #' @param transform if TRUE, will return a bootstrap on the transformed
 #' parameters, rather than on the link scale
-#' @return A named list with entries "GAI", "N", "A" and "par" giving the 
-#' \code{c(alpha / 2, 1 - alpha / 2)} confidence interval for the GAI, site
-#' superpopulation, seasonal component and estimated parameter values,
-#' respectively.
+#' @return A named list with entries "EC", "N", "A" and "par" giving the
+#' \code{c(alpha / 2, 1 - alpha / 2)} confidence interval for the expected
+#' observed count at each site on each occasion, the estimated 
+#' site super-population, the seasonal component, and the estimated
+#' parameter values, respectively.
 #' @export
 bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
                       cores = NULL, transform = T){
-  # purpose : Produces bootstrap estimates of the GAI and fitted parameters
-  # inputs  : GAI_fit  - An object produced by using fit_GAI for model fitting
-  #           R        - The number of resamples to produce for the bootstrap
-  #           refit    - If TRUE, resamples the observations from the sites and
-  #                      occasions uniformly, and refits the model at each
-  #                      bootsrap iteration. If FALSE, the bootstrap simply
-  #                      resamples the fitted parameter values from their 
-  #                      asymptotic normal distribution (therefore this option
-  #                      requires a Hessian to have been produced during the
-  #                      model fitting stage).
-  #           alpha    - 1 - alpha gives the coverage the bootstrap confidence
-  #                      intervals aim to produce.
-  #           parallel - if TRUE, calculates the bootstraps in parallel, using
-  #                      the maximum number of available cores.
-  #           cores    - If not NULL, this specifies the number of cores to use, 
-  #                      if the default of using all available cores is 
-  #                      undesirable.
-  # output  : A named list with entries "GAI", "N", "A" and "par" giving the
-  #           c(alpha / 2, 1 - alpha / 2) confidence interval for the GAI, 
-  #           site superpopulation, seasonal component and estimated parameter
-  #           values, respectively.
-  #
   # note    : The resampling the perameters bootstrap is not performed in
   #           parallel, since the calculation is so quick that combining results
   #           from multiple cores is typically slower than running the single
@@ -2030,20 +2009,38 @@ bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
   # Calculate the confidence intervals using the results:
   probs <- c(alpha / 2, 1 - alpha / 2)
   par_CI <- apply(parameters, 2, quantile, probs = probs)
+  
+  A_vals %<>% unlist %>% array(dim = c(R, nS, nT), 
+                               dimnames = list(
+                                 paste0("R_", 1:R),
+                                 paste0("Site_", 1:nS),
+                                 paste0("Occasion_", 1:nT))
+                               )
+  
+  N_vals %<>% unlist %>% array(dim = c(R, nS, nT), 
+                               dimnames = list(
+                                 paste0("R_", 1:R),
+                                 paste0("Site_", 1:nS),
+                                 paste0("Occasion_", 1:nT))
+  )
+  
+  expected_count <- A_vals * N_vals
+  N_vals <- N_vals[1:R, 1:nS, 1]
+  expected_count_CI <- apply(expected_count, c(2, 3), quantile, probs = probs)
+  A_CI <- apply(A_vals, c(2, 3), quantile, probs = probs)
   N_CI <- apply(N_vals, 2, quantile, probs = probs)
-  A_CI <- apply(A_vals, 2, quantile, probs = probs) %>% as.matrix(nrow = nS)
-  index_CI <- apply(mean_vals, 2, quantile, probs = probs)
   
-  if(parallel) stopCluster(cl)
+  if (parallel) stopCluster(cl)
   
-  return(list(par = par_CI,
-              sites = N_CI,
-              A_lower = A_CI[1,] %>% matrix(nrow = nS),
-              A_upper = A_CI[2,] %>% matrix(nrow = nS),
-              index = index_CI,
-              par_raw = parameters,
-              N_raw = N_vals,
-              A_raw = matrix(A_vals, nrow = nS)))
+  return(list(
+    EC = expected_count_CI,
+    N = N_CI,
+    A = A_CI,
+    par = par_CI,
+    EC_raw = expected_count,
+    N_raw = N_vals,
+    A_raw = matrix(A_vals, nrow = nS),
+    par_raw = parameters))
 }
 
 
