@@ -73,14 +73,7 @@ brood_specific_options <- list(B = 3, shared_sigma = F,
                                       formula(~altitude),       # for brood 2
                                       formula(~I(altitude^2)))) # for brood 3
 
-# The distributional parameter we had previously for the ZIP (Zero-Inflated 
-# Poisson) distribution will disappear now that we're fitting a simple 
-# Poisson. However, we are also adding a covariate formula which will require
-# one additional parameter. We'll give this a starting value of 0, which 
-# reflects an a priori belief that the covariate has no effect. To do this, 
-# we simply replace the final value of example par with 0, since distributional
-# parameters are placed at the end of the parameter vector, and covariates are 
-# placed after these, when they are present:
+# We keep the same starting estimates as before, with 0 for the new parameter:
 general_fit_start <- example_par[1:(length(example_par) - 1)] %>% c(0)
 
 # Having specified our covariate formulae, we can fit the model in exactly the
@@ -97,7 +90,7 @@ general_fit$par
 # the example_par vector (using the shared standard deviation across broods as
 # the estimate for each brood individually). We then also add two 0s as our 
 # starting values for the covariate parameters
-brood_specific_start = c(example_par[c(1:3, rep(4, 3), 5:6)], rep(0, 2))
+brood_specific_start <- c(example_par[c(1:3, rep(4, 3), 5:6)], rep(0, 2))
 brood_specific_fit <- fit_GAI(start = brood_specific_start,
                               DF = example_data, a_choice = "mixture",
                               dist_choice = "P", hessian = T,
@@ -216,7 +209,7 @@ refitting_bootstrap <- bootstrap(general_fit, R = 9, refit = T, parallel = F,
 ## ----intervals-------------------------------------------------------------------------------------------------------------------------------------------
 refitting_bootstrap$par            # parameter estimates
 refitting_bootstrap$N[,1:5]        # site super-population estimates
-refitting_bootstrap$EC[, 1:5, 1:2] # expected counts at each site, per occasion
+refitting_bootstrap$EC[,1:5, 1:2]  # expected counts at each site, per occasion
 
 
 ## ----summary---------------------------------------------------------------------------------------------------------------------------------------------
@@ -231,7 +224,7 @@ AIC(my_mixture_GAI)
 ## ----backtransform---------------------------------------------------------------------------------------------------------------------------------------
 # We can create a `data.frame` with custom covariate values, or reuse values that
 # we observed during the survey:
-DF_to_transform <- `data.frame`(altitude = c(-100, 0, 100))
+DF_to_transform <- `data.frame`(altitude = c(-1e2, 0, 1e2))
 DF_to_transform <- general_fit$DF[1:3,]
 
 # The transform_output function deals with all the covariate formulas and link
@@ -245,8 +238,6 @@ transform_output(my_mixture_GAI)
 # We can also use this function to get out the a_func matrix for a set of
 # covariate values:
 A <- transform_output(general_fit, DF_to_transform, provide_A = T)$A
-matplot(t(A), type = 'l', col = c("blue", "darkblue", "darkgrey"),
-        ylab = "Unscaled Flight Path Density", xlab = "Occasion")
     
 # It's important to include all covariates exactly as they were named in the 
 # call to fit_GAI, otherwise an error will be thrown, giving the name of the 
@@ -255,6 +246,14 @@ try(transform_output(brood_specific_fit, `data.frame`(altiitude = c(-10, 0, 10))
 
 # NA covariate values will throw an error, as always:
 try(transform_output(brood_specific_fit, `data.frame`(altitude = c(NA, 0, 10))))
+
+
+## ---- include = F----------------------------------------------------------------------------------------------------------------------------------------
+library(ggplot2)
+library(reshape2)
+
+# # Convert this document to R code, to make sure the script is up to date:
+# knitr::purl("vignette.Rmd")
 
 
 ## ----plotting, fig.width = 7, fig.height = 5-------------------------------------------------------------------------------------------------------------

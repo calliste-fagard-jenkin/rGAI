@@ -863,7 +863,7 @@ profile_ll <- function(par, obs, skeleton, a_choice = "mixture",
   #a_func[is.na(obs)] <- NA
   
   # Get N from the specified argument or with a profile likelihood approach:
-  if (is.null(N)) N <- y_dot/apply(a_func, 1, sum, na.rm = T)
+  if (is.null(N)) N <- y_dot / apply(a_func, 1, sum, na.rm = T)
   else if (length(N) == 1) N %<>% rep(nS)
   lambda <- a_func * rep(N, nT)
   
@@ -1761,7 +1761,7 @@ bootstrap_non_parallel <- function(R, MLE, sigma, obs, skeleton, a_choice,
   #           obs      - The observations
   #           skeleton -
   #           
-  # output  : list of parameters, N_vals and mean vals for the GAI resulting
+  # output : list of parameters, N_vals and mean vals for the GAI resulting
   #           from the bootstrap
   for (i in 1:R){
     # Resample the parameters and get new estimates of the GAI:

@@ -9,9 +9,7 @@ vignette: >
 ---
 # Introduction to the rGAI package
 
-The rGAI package is an extension of functionality provided by 
-\href{https://onlinelibrary.wiley.com/doi/full/10.1111/biom.12506}{Dennis
-\textit{et al} (2016)}. The package provides a user interface for calculating a
+The rGAI package is an extension of functionality provided by [Dennis _et al_ (2016)](https://onlinelibrary.wiley.com/doi/full/10.1111/biom.12506). The package provides a user interface for calculating a
 Generalised Abundance Index (GAI) for seasonal invertebrates, with multiple
 options for covariate inclusion, seasonal flight patterns and observed count
 distributions, along with the ability to conduct bootstraps to obtain measures
@@ -23,7 +21,7 @@ providing an example workflow on simulated data.
 # Installing the Package from Source
 
 In order to install the `rGAI` package from source, the folder containing the
-source code must be downloaded from Github (https://github.com/calliste-fagard-jenkin/rGAI), or installed via
+source code must be downloaded from [GitHub](https://github.com/calliste-fagard-jenkin/rGAI), or installed via
 `install_github` in the `devtools` package.
 
 ```{R loading, results = 'hide', warning = F}
@@ -172,7 +170,8 @@ ignored.
 
 It should be noted that the value 0 is often used to initialise covariate 
 parameters, and reflects the a priori assumption that the covariate has no 
-effect.
+effect. In the case of stopover models, this value leads to a probability of
+0.5 for sojourning, once link functions have been applied.
 
 ```{R covariates}
 # To specify a formula which will be identical for each brood, 
@@ -188,14 +187,7 @@ brood_specific_options <- list(B = 3, shared_sigma = F,
                                       formula(~altitude),       # for brood 2
                                       formula(~I(altitude^2)))) # for brood 3
 
-# The distributional parameter we had previously for the ZIP (Zero-Inflated 
-# Poisson) distribution will disappear now that we're fitting a simple 
-# Poisson. However, we are also adding a covariate formula which will require
-# one additional parameter. We'll give this a starting value of 0, which 
-# reflects an a priori belief that the covariate has no effect. To do this, 
-# we simply replace the final value of example par with 0, since distributional
-# parameters are placed at the end of the parameter vector, and covariates are 
-# placed after these, when they are present:
+# We keep the same starting estimates as before, with 0 for the new parameter:
 general_fit_start <- example_par[1:(length(example_par) - 1)] %>% c(0)
 
 # Having specified our covariate formulae, we can fit the model in exactly the
@@ -212,7 +204,7 @@ general_fit$par
 # the example_par vector (using the shared standard deviation across broods as
 # the estimate for each brood individually). We then also add two 0s as our 
 # starting values for the covariate parameters
-brood_specific_start = c(example_par[c(1:3, rep(4, 3), 5:6)], rep(0, 2))
+brood_specific_start <- c(example_par[c(1:3, rep(4, 3), 5:6)], rep(0, 2))
 brood_specific_fit <- fit_GAI(start = brood_specific_start,
                               DF = example_data, a_choice = "mixture",
                               dist_choice = "P", hessian = T,
@@ -337,7 +329,7 @@ function will assume that 0 is a reasonable starting value for all covariate
 parameters and spline parameters, which usually leads to numerically sound
 estimation of the MLEs. However, if covariates aren't normalised, and have 
 large magnitude, this won't be the case. Note that in the case of 
-zero-infalted poisson or negative binomial count distributions, an initial 
+zero-inflated poisson or negative binomial count distributions, an initial 
 guess for the additional distributional parameter can also be provided, using 
 the name `dist.par`. When covariates are included in a model specification, we
 must also make sure the `transform_starting_values` function is supplied with
@@ -419,7 +411,7 @@ individual site totals and average site total, respectively:
 ```{R intervals}
 refitting_bootstrap$par            # parameter estimates
 refitting_bootstrap$N[,1:5]        # site super-population estimates
-refitting_bootstrap$EC[, 1:5, 1:2] # expected counts at each site, per occasion
+refitting_bootstrap$EC[,1:5, 1:2]  # expected counts at each site, per occasion
 ```
 
 # Model Outputs
@@ -492,7 +484,7 @@ sure that the effect of covariates has also been taken into account.
 ```{R backtransform}
 # We can create a `data.frame` with custom covariate values, or reuse values that
 # we observed during the survey:
-DF_to_transform <- `data.frame`(altitude = c(-100, 0, 100))
+DF_to_transform <- `data.frame`(altitude = c(-1e2, 0, 1e2))
 DF_to_transform <- general_fit$DF[1:3,]
 
 # The transform_output function deals with all the covariate formulas and link
@@ -506,8 +498,6 @@ transform_output(my_mixture_GAI)
 # We can also use this function to get out the a_func matrix for a set of
 # covariate values:
 A <- transform_output(general_fit, DF_to_transform, provide_A = T)$A
-matplot(t(A), type = 'l', col = c("blue", "darkblue", "darkgrey"),
-        ylab = "Unscaled Flight Path Density", xlab = "Occasion")
     
 # It's important to include all covariates exactly as they were named in the 
 # call to fit_GAI, otherwise an error will be thrown, giving the name of the 
@@ -536,6 +526,14 @@ be done by setting `scale_by_N = TRUE` in the call to the `plot` function.
 If custom colours are to be used by the plotting function, the colour palette 
 can be passed to the `plot` function as a vector of integers or character colour 
 hex values using the `colours` argument.
+
+```{R, include = F}
+library(ggplot2)
+library(reshape2)
+
+# # Convert this document to R code, to make sure the script is up to date:
+# knitr::purl("vignette.Rmd")
+```
 
 ```{R plotting, fig.width = 7, fig.height = 5}
 colours <- c("#33FFF9", "#33A8FF", "#4233FF")
