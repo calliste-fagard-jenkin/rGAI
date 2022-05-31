@@ -197,12 +197,11 @@ new_brood_specific_fit <- fit_GAI(start = new_brood_specific_start,
 # Checking the MLEs:
 new_brood_specific_fit$par
 
-
 ## ----bootstrap, warnings = F-----------------------------------------------------------------------------------------------------------------------------
 general_fit_bootstrap <- bootstrap(general_fit, R = 500, refit = F,
                                    alpha = 0.01, transform = T)
 
-refitting_bootstrap <- bootstrap(general_fit, R = 9, refit = T, parallel = F,
+refitting_bootstrap <- bootstrap(general_fit, R = 9, refit = T, parallel = T,
                                  cores = 3, alpha = 0.01, transform = T)
 
 

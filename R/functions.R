@@ -1247,7 +1247,7 @@ transform_values <- function(base, starting, skeleton){
   # purpose : Takes a given parameter type ("mu", "sigma" or "w") and performs
   #           the required checks to backtransform user supplied values onto the
   #           package's link scale
-  # inputs  : base     - The character name of the paramter type "mu", "sigma"
+  # inputs  : base     - The character name of the parameter type "mu", "sigma"
   #                      or "w"
   #           starting - The list of starting values that the user gave
   #           skeleton - The skeleton for the specified model
@@ -1898,6 +1898,34 @@ transform_params <- function(param_vector, GAI_fit, use_all){
   if (use_all) DF <- GAI_fit$DF # If refitting, use the data covariate values
   else DF <- GAI_fit$DF[sample(1:nrow(GAI_fit$DF), 1),] # else sample one set
   transform_output(GAI_fit, DF) %>% apply(2, mean) %>% return
+}
+
+#' Transforms bootstrap confidence intervals for custom covariate values.
+#' 
+#' Transforms bootstrap confidence intervals of parameter values to the
+#' parameter scale for a range of custom covariate values. Typically used to 
+#' provide information to produce plots of parameter estimates against 
+#' covariate value, with confidence intervals
+#' @param bootstrap_param_output A table of parameter estimates obtained by
+#' using rGAI's bootstrap function with transform = F. Custom values produced
+#' manually can also be passed.
+#' @param GAI_fit An object produced by using fit_GAI for model fitting
+#' @param covariate_data_frame A data.frame containing the range of covariate
+#' values for which parameter scale transformations are desired.
+#' @export
+transform_bootstrap_parameters <- function(bootstrap_param_output, GAI_fit,
+                                           covariate_data_frame){
+  
+  N <- nrow(bootstrap_param_output)
+  output <- list()
+  
+  for (i in 1:N){
+    GAI_fit$par <- bootstrap_param_output[i, ]
+    output[[i]] <- transform_output(GAI_fit, covariate_data_frame)
+  }  
+  
+  names(output) <- rownames(bootstrap_param_output)
+  return(output)
 }
 
 #' Bootstrapping for GAI models

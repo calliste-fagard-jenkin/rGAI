@@ -399,6 +399,9 @@ general_fit_bootstrap <- bootstrap(general_fit, R = 500, refit = F,
 
 refitting_bootstrap <- bootstrap(general_fit, R = 9, refit = T, parallel = F,
                                  cores = 3, alpha = 0.01, transform = T)
+
+untransformed_bootstrap <- bootstrap(general_fit, R = 500, refit = F,
+                                     transform = F, alpha = 0.01)
 ```
 
 
@@ -408,11 +411,24 @@ total. The $1 - \alpha$ confidence intervals are available in the `$par`,
 `$sites` and `$index` elements of the bootstrap output for the parameters,
 individual site totals and average site total, respectively:
 
+Bootstrap outputs for parameters can also be transformed for a range of 
+custom covariate functions, in order to produce plots, or for interpolation.
+This is done with the `transform_bootstrap_parameters' function, which can take
+as argument an input `data.frame` of parameter values, a fitted model object 
+produced from the `fit_GAI` function (which it uses to extract model
+specifications and design matrices), and a `data.frame` of custom covariate 
+values for which parameter scale transformations are desired.
+
 ```{R intervals}
 refitting_bootstrap$par            # parameter estimates
 refitting_bootstrap$N[,1:5]        # site super-population estimates
 refitting_bootstrap$EC[,1:5, 1:2]  # expected counts at each site, per occasion
+
+transform_bootstrap_parameters(untransformed_bootstrap$par, general_fit, 
+                               data.frame(altitude = c(-1e2, 0, 1e2)))
+
 ```
+
 
 # Model Outputs
 
