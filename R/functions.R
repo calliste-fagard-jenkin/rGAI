@@ -2079,7 +2079,7 @@ bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
 #' 
 #' Extracts the (postive) log likelihood value from an output from the fit_GAI
 #' function, notably for use by the AIC function
-#' @param GAIobj An object produced by using fit_GAI for model fitting
+#' @param GAIobj An object produced by using <- for model fitting
 #' @return An object object of class "logLik" with an attribute "df" equal to 
 #' the number of fitted parameters for the model at hand.
 #' @export

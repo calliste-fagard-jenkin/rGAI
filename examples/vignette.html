@@ -416,15 +416,14 @@ observed counts of individuals at each site on a given occasion. The
 package includes Poisson (<code>&quot;P&quot;</code>), Negative Binomial
 (<code>&quot;NB&quot;</code>) and Zero-Inflated Poisson (<code>&quot;ZIP&quot;</code>) as
 options for this distribution.</p>
-<p>The same <code>options</code> argument can be used to indicate if
-broods should all share the same standard deviation, and provide the
-desired <code>degree</code> (of the polymial) and <code>df</code>
-(degrees of freedom) of any splines used. The
-<code>verbose = TRUE</code> option can be used to display the negative
-log likelihood at each iteration of the model fitting process. The
-option <code>hessian = TRUE</code> can be used to tell the
-<code>fit_GAI</code> function to obtain an estimate of the hessian of
-the likelihood, which can be used to estimate the Fisher
+<p>The <code>options</code> argument can be used to indicate if broods
+should all share the same standard deviation, or to provide the desired
+<code>degree</code> (of the polynomial) and <code>df</code> (degrees of
+freedom) of any splines used. The <code>verbose = TRUE</code> option can
+be used to display the negative log likelihood at each iteration of the
+model fitting process. The option <code>hessian = TRUE</code> can be
+used to tell the <code>fit_GAI</code> function to obtain an estimate of
+the hessian of the likelihood, which can be used to estimate the Fisher
 information.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># We can load the true parameter values of the simulated data set from the </span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># rGAI package, to more easily find starting parameter values for this example:</span></span>
@@ -777,37 +776,37 @@ of custom covariate values for which parameter scale transformations are
 desired.</p>
 <div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>refitting_bootstrap<span class="sc">$</span>par            <span class="co"># parameter estimates</span></span></code></pre></div>
 <pre><code>##            mu1      mu2      mu3    sigma        w1        w2
-## 0.5%  3.932275 13.49102 22.34914 1.790428 0.1214363 0.5843666
-## 99.5% 4.272916 13.63167 22.50866 1.864071 0.1558008 0.6140448</code></pre>
+## 0.5%  4.061978 13.41324 22.28494 1.824492 0.1342393 0.5663677
+## 99.5% 4.197640 13.68846 22.46491 1.869384 0.1507632 0.6156667</code></pre>
 <div class="sourceCode" id="cb39"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>refitting_bootstrap<span class="sc">$</span>N[,<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>]        <span class="co"># site super-population estimates</span></span></code></pre></div>
-<pre><code>##          Site_1    Site_2    Site_3    Site_4    Site_5
-## 0.5%   53.32858  76.22267  58.40479  59.54888  54.55892
-## 99.5% 160.96333 161.03919 150.89843 161.91262 151.31430</code></pre>
+<pre><code>##          Site_1   Site_2    Site_3    Site_4    Site_5
+## 0.5%   44.63242  58.4327  61.10068  92.17867  59.66382
+## 99.5% 154.15607 134.5829 161.88855 151.48912 153.93508</code></pre>
 <div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>refitting_bootstrap<span class="sc">$</span>EC[,<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>]  <span class="co"># expected counts at each site, per occasion</span></span></code></pre></div>
 <pre><code>## , , Occasion_1
 ## 
 ##          Site_1    Site_2    Site_3    Site_4    Site_5
-## 0.5%  0.3278991 0.5451964 0.4068227 0.4306167 0.4096577
-## 99.5% 1.1300501 1.0202235 0.9142366 1.2884145 1.0766070
+## 0.5%  0.2910177 0.4122626 0.4521561 0.6817488 0.4114791
+## 99.5% 1.1506211 1.0231875 1.3378266 1.1749012 1.2155072
 ## 
 ## , , Occasion_2
 ## 
-##          Site_1   Site_2    Site_3    Site_4    Site_5
-## 0.5%  0.7473666 1.185528 0.9030839 0.9316626 0.9093202
-## 99.5% 2.4530938 2.269488 2.0941423 2.7966925 2.3887508</code></pre>
+##          Site_1    Site_2   Site_3   Site_4    Site_5
+## 0.5%  0.6459613 0.9107931 0.976631 1.472992 0.9111853
+## 99.5% 2.4603085 2.1928888 2.781317 2.501612 2.5730604</code></pre>
 <div class="sourceCode" id="cb43"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">transform_bootstrap_parameters</span>(untransformed_bootstrap<span class="sc">$</span>par, general_fit, </span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">data.frame</span>(<span class="at">altitude =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">1e2</span>, <span class="dv">0</span>, <span class="fl">1e2</span>)))</span></code></pre></div>
 <pre><code>## $`0.5%`
-##        mu1       mu2      mu3   sigma1       w1        w2
-## 1 6.483830 21.278693 35.30447 1.775775 0.132355 0.5929906
-## 2 4.016828 13.182463 21.87164 1.775775 0.132355 0.5929906
-## 3 2.488484  8.166729 13.54980 1.775775 0.132355 0.5929906
+##        mu1       mu2      mu3   sigma1       w1       w2
+## 1 6.339919 20.886576 34.63225 1.777973 0.132749 0.592501
+## 2 3.998368 13.172442 21.84137 1.777973 0.132749 0.592501
+## 3 2.521633  8.307405 13.77460 1.777973 0.132749 0.592501
 ## 
 ## $`99.5%`
 ##        mu1       mu2      mu3   sigma1        w1        w2
-## 1 2.818524  8.969898 14.75002 1.871541 0.1568443 0.6040724
-## 2 4.381751 13.944837 22.93076 1.871541 0.1568443 0.6040724
-## 3 6.811984 21.679007 35.64875 1.871541 0.1568443 0.6040724</code></pre>
+## 1 2.818205  8.999118 14.78567 1.881109 0.1579261 0.6043167
+## 2 4.380992 13.989423 22.98482 1.881109 0.1579261 0.6043167
+## 3 6.810395 21.747017 35.73065 1.881109 0.1579261 0.6043167</code></pre>
 </div>
 <div id="model-outputs" class="section level1">
 <h1>Model Outputs</h1>
@@ -890,8 +889,10 @@ values should be exponentiated. Weights also use a custom link function,
 which can be applied to fitted values using the <code>probs_link</code>
 function. The extra distributional parameter for the ZIP uses a logistic
 link (by virtue of being a probability), which can be applied with the
-<code>qlogis</code> function, whereas the rate parameter for an NB model
-should be exponentiated, to ensure it is always positive.</p>
+<code>plogis</code> function, whereas the rate parameter for an NB model
+should be exponentiated, to ensure it is always positive. Sojourning
+probabilities in stopover models also make use of the logistic link
+(<code>plogis</code>).</p>
 <p>The <code>transform_output</code> function within the
 <code>rGAI</code> package uses model settings stored in the fitted model
 object to apply these link functions automatically, making sure that the

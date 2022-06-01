@@ -7,7 +7,7 @@
 \method{logLik}{GAI}(GAIobj)
 }
 \arguments{
-\item{GAIobj}{An object produced by using fit_GAI for model fitting}
+\item{GAIobj}{An object produced by using <- for model fitting}
 }
 \value{
 An object object of class "logLik" with an attribute "df" equal to 

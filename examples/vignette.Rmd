@@ -87,12 +87,12 @@ of individuals at each site on a given occasion. The package includes Poisson
 (`"P"`), Negative Binomial (`"NB"`) and Zero-Inflated Poisson (`"ZIP"`) as
 options for this distribution.
 
-The same `options` argument can be used to indicate if broods should all share
-the same standard deviation, and provide the desired `degree` (of the polymial) and `df` (degrees of freedom) of any splines used. The `verbose = TRUE` option can be 
-used to display the negative log likelihood at each iteration of the model 
-fitting process. The option `hessian = TRUE` can be used to tell the `fit_GAI`
-function to obtain an estimate of the hessian of the likelihood, which can be
-used to estimate the Fisher information.
+The `options` argument can be used to indicate if broods should all share
+the same standard deviation, or to provide the desired `degree` (of the
+polynomial) and `df` (degrees of freedom) of any splines used. The
+`verbose = TRUE` option can be used to display the negative log likelihood at
+each iteration of the model fitting process. The option `hessian = TRUE` can be
+used to tell the `fit_GAI` function to obtain an estimate of the hessian of the likelihood, which can be used to estimate the Fisher information.
 
 ```{R fitting}
 # We can load the true parameter values of the simulated data set from the 
@@ -410,7 +410,7 @@ parameter values, the flight path densities for each site and occasion, the esti
 total. The $1 - \alpha$ confidence intervals are available in the `$par`,
 `$sites` and `$index` elements of the bootstrap output for the parameters,
 individual site totals and average site total, respectively:
-
+  
 Bootstrap outputs for parameters can also be transformed for a range of 
 custom covariate functions, in order to produce plots, or for interpolation.
 This is done with the `transform_bootstrap_parameters' function, which can take
@@ -491,8 +491,9 @@ deviations, a log-link is used, and so fitted values should be exponentiated.
 Weights also use a custom link function, which can be applied to fitted values
 using the `probs_link` function. The extra distributional parameter for the ZIP
 uses a logistic link (by virtue of being a probability), which can be applied
-with the `qlogis` function, whereas the rate parameter for an NB model should
-be exponentiated, to ensure it is always positive.
+with the `plogis` function, whereas the rate parameter for an NB model should
+be exponentiated, to ensure it is always positive. Sojourning probabilities in
+stopover models also make use of the logistic link (`plogis`).
 
 The `transform_output` function within the `rGAI` package uses model settings stored
 in the fitted model object to apply these link functions automatically, making
