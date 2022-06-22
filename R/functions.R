@@ -2111,7 +2111,7 @@ summary.GAI <- function(GAIobj){
   output <- list()
   output$MLE <- GAIobj$par
   
-  if (!is.null(GAIobj["hessian"])){
+  if (!is.null(GAIobj$hessian)){
     output$MLE.SE <- GAIobj$hessian %>% solve %>% diag %>% sqrt
   }
   
@@ -2134,9 +2134,9 @@ print.summary.GAI <- function(obj){
   # purpose : Prints the output generated from the summary.GAI function
   cat("Maximum Likelihood Estimates (MLEs):\n\n")
   obj$MLE %>% signif(4) %>% print
-  cat("\n\n")
   
-  if(obj["MLE.SE"] %>% is.null %>% `!`){
+  if(obj$MLE.SE %>% is.null %>% `!`){
+    cat("\n\n")
     cat("MLE Standard Errors:\n\n")
     obj$MLE.SE %>% signif(4) %>% print
   }
