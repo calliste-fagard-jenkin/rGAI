@@ -860,10 +860,11 @@ profile_ll <- function(par, obs, skeleton, a_choice = "mixture",
   # The splines function returns a vector, since no covariates are allowed,
   # so we convert the output to a matrix, to match "obs":
   if (a_choice == "splines") a_func %<>% matrix(nrow = nS, ncol = nT, byrow = T)
-  #a_func[is.na(obs)] <- NA
+  a_funcNA <- a_func
+  a_funcNA[is.na(obs)] <- NA
   
   # Get N from the specified argument or with a profile likelihood approach:
-  if (is.null(N)) N <- y_dot / apply(a_func, 1, sum, na.rm = T)
+  if (is.null(N)) N <- y_dot / apply(a_funcNA, 1, sum, na.rm = T)
   else if (length(N) == 1) N %<>% rep(nS)
   lambda <- a_func * rep(N, nT)
   
