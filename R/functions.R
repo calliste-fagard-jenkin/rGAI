@@ -2033,6 +2033,10 @@ bootstrap <- function(GAI_fit, R = 100, refit = T, alpha = 0.05, parallel = T,
     parameters %<>% apply(1, transform_params, GAI_fit = GAI_fit,
                           use_all = refit) %>% t
     
+    # Remove w1 from parameters if not present in GAI_fit$par (i.e. single brood case)
+    if(!"w1" %in% names(GAI_fit$par))
+      parameters <- parameters[, !colnames(parameters) =="w1"]
+    
     # Assume the transformation has removed parameters that are only used to 
     # calculate the effect of a covariate:
     colnames(parameters) <- names(GAI_fit$par) %>% {.[!grepl(".cov", .)]}
